@@ -1,0 +1,7 @@
+node_modules
+dist
+.env
+osrm-data/region.osrm*
+!osrm-data/region.osm.pbf
+*.log
+.DS_Store

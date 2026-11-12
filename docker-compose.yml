@@ -1,0 +1,148 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: medigrid
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 512m
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 512m
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 256m
+
+  osrm:
+    image: osrm/osrm-backend
+    command: ["osrm-routed", "--algorithm", "mld", "/data/region.osrm"]
+    volumes:
+      - ./osrm-data:/data
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'GET /route/v1/driving/1.52,42.50;1.53,42.51 HTTP/1.0\r\n\r\n' | nc localhost 5000 || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # App Instance 1 (Stateless API + WS)
+  app1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      osrm:
+        condition: service_started
+    ports:
+      - "3000:3000"
+      - "3001:3000"
+    environment:
+      INSTANCE_ID: "app-node-1"
+      PORT: 3000
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: example
+      MYSQL_DATABASE: medigrid
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      OSRM_HOST: osrm
+    restart: unless-stopped
+    mem_limit: 512m
+
+  # App Instance 2 (Stateless API + WS for zero single point of failure)
+  app2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      osrm:
+        condition: service_started
+    ports:
+      - "3002:3000"
+    environment:
+      INSTANCE_ID: "app-node-2"
+      PORT: 3000
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: example
+      MYSQL_DATABASE: medigrid
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      OSRM_HOST: osrm
+    restart: unless-stopped
+    mem_limit: 512m
+
+  # Independent Worker: Processes admissions, transfers, Saga compensations, dead letters
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["node", "dist/worker.js"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      INSTANCE_ID: "worker-svc"
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: example
+      MYSQL_DATABASE: medigrid
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+    restart: unless-stopped
+    mem_limit: 512m
+
+volumes:
+  mysql-data:

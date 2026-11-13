@@ -363,6 +363,29 @@ wss.on('connection', (ws) => {
         recentSearchLatencies.push(latencyMs);
         if (recentSearchLatencies.length > 100) recentSearchLatencies.shift();
 
+        const requestId = randomUUID();
+
+        // 1. Audit log into emergency_requests table with exact request timestamp
+        await pool.query(`
+          INSERT INTO emergency_requests
+            (request_id, ambulance_id, pickup_lat, pickup_lon, bed_type, priority, assigned_hospital_id, assigned_hospital_name, assigned_bed_id, distance_meters, estimated_duration_sec, search_latency_ms, status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ASSIGNED')
+        `, [
+          requestId,
+          actorId,
+          lat,
+          lon,
+          requestedType,
+          payload?.priority || 'CRITICAL',
+          bestCandidate.id,
+          bestCandidate.name,
+          assignedBed.id,
+          Math.round(roadDistance),
+          Math.round(roadDuration),
+          latencyMs,
+        ]);
+
+        // 2. Dispatch assignments table
         await pool.query(`
           INSERT INTO dispatch_assignments
             (actor_id, hospital_id, bed_id, pickup_lat, pickup_lon, distance_meters, estimated_duration_sec, status)
@@ -429,6 +452,10 @@ wss.on('connection', (ws) => {
             'UPDATE dispatch_assignments SET status = "ARRIVED" WHERE actor_id = ? AND status = "ASSIGNED"',
             [ambActorId]
           );
+          await pool.query(
+            'UPDATE emergency_requests SET status = "ARRIVED" WHERE ambulance_id = ? AND status = "ASSIGNED"',
+            [ambActorId]
+          );
         }
 
         await publishWsFanout('ws:fanout', {
@@ -456,6 +483,10 @@ wss.on('connection', (ws) => {
           );
           await pool.query(
             'UPDATE dispatch_assignments SET status = "CANCELLED" WHERE actor_id = ? AND status = "ASSIGNED"',
+            [ambActorId]
+          );
+          await pool.query(
+            'UPDATE emergency_requests SET status = "CANCELLED" WHERE ambulance_id = ? AND status = "ASSIGNED"',
             [ambActorId]
           );
         }
@@ -537,9 +568,9 @@ app.get('/api/hospitals/nearby', async (req: any) => {
   `, [bedType]);
 
   const nearby = rows.map((h: any) => {
-    const dist = haversineDistance(lat, lon, h.lat, h.lon);
-    const roadMeters = Math.round(dist * 1.28);
-    const etaSec = Math.round(roadMeters / 11.11);
+    const straightDist = haversineDistance(lat, lon, h.lat, h.lon);
+    const roadMeters = Math.max(150, Math.round(straightDist * 1.35));
+    const etaSec = Math.max(60, Math.round(roadMeters / 8.33));
     const hasFacility = Number(h.freeBedsForType) > 0;
     return {
       ...h,
@@ -550,6 +581,17 @@ app.get('/api/hospitals/nearby', async (req: any) => {
   }).sort((a: any, b: any) => a.distanceMeters - b.distanceMeters);
 
   return nearby.slice(0, 5);
+});
+
+app.get('/api/requests', async () => {
+  const pool = await getDbPool();
+  const [rows] = await pool.query(`
+    SELECT r.*, DATE_FORMAT(r.requested_at, '%Y-%m-%d %H:%i:%s') as formatted_time
+    FROM emergency_requests r
+    ORDER BY r.requested_at DESC
+    LIMIT 50
+  `);
+  return rows;
 });
 
 app.get('/api/hospitals', async () => {

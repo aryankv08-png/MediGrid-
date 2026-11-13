@@ -15,16 +15,20 @@ export async function calculateRoadDistance(
 ): Promise<RouteResult | null> {
   const osrmHost = process.env.OSRM_HOST || 'localhost';
   const url = `http://${osrmHost}:5000/route/v1/driving/${fromLon},${fromLat};${toLon},${toLat}?overview=false`;
+  const straightDist = haversineDistance(fromLat, fromLon, toLat, toLon);
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1200);
+    const timeout = setTimeout(() => controller.abort(), 800);
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timeout);
 
     if (res.ok) {
       const data: any = await res.json();
-      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+      const isOutOfBounds = data.waypoints && data.waypoints[0] && data.waypoints[0].distance > 10000;
+      const isZeroBug = data.routes && data.routes[0] && data.routes[0].distance === 0 && straightDist > 30;
+
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0 && !isOutOfBounds && !isZeroBug && data.routes[0].distance > 0) {
         return {
           distanceMeters: Math.round(data.routes[0].distance),
           durationSeconds: Math.round(data.routes[0].duration),
@@ -32,15 +36,18 @@ export async function calculateRoadDistance(
       }
     }
   } catch (err) {
-    // Silent fallback to city-scale Haversine
+    // Fall back to city road proxy
   }
 
-  // Realistic urban road network proxy (Haversine distance multiplied by 1.28 city curvature)
-  const d = haversineDistance(fromLat, fromLon, toLat, toLon);
-  const roadMeters = Math.round(d * 1.28);
+  // Realistic Hyderabad urban road network proxy:
+  // 1.35 road curvature multiplier accounting for Hyderabad traffic corridors, intersections, and flyovers
+  const roadMeters = Math.max(150, Math.round(straightDist * 1.35));
+  // 30 km/h emergency response driving speed (~8.33 m/s) with 60s minimum response time
+  const durationSeconds = Math.max(60, Math.round(roadMeters / 8.33));
+
   return {
     distanceMeters: roadMeters,
-    durationSeconds: Math.round(roadMeters / 11.11), // ~40 km/h emergency transit
+    durationSeconds: durationSeconds,
   };
 }
 

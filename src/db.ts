@@ -116,6 +116,28 @@ async function initSchema(p: Pool) {
     );
   `);
 
+  // 4.c Emergency requests audit log (records incoming bed requests & timestamps)
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS emergency_requests (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      request_id VARCHAR(64) NOT NULL,
+      ambulance_id VARCHAR(64) NOT NULL,
+      pickup_lat DOUBLE NOT NULL,
+      pickup_lon DOUBLE NOT NULL,
+      bed_type ENUM('ICU', 'VENTILATOR', 'GENERAL', 'PEDIATRIC') NOT NULL,
+      priority ENUM('CRITICAL', 'ROUTINE') DEFAULT 'CRITICAL',
+      assigned_hospital_id VARCHAR(36) NULL,
+      assigned_hospital_name VARCHAR(120) NULL,
+      assigned_bed_id VARCHAR(36) NULL,
+      distance_meters INT DEFAULT 0,
+      estimated_duration_sec INT DEFAULT 0,
+      search_latency_ms INT DEFAULT 0,
+      status ENUM('PENDING', 'ASSIGNED', 'ARRIVED', 'CANCELLED', 'NO_BED') DEFAULT 'ASSIGNED',
+      requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_amb_req (ambulance_id, requested_at)
+    );
+  `);
+
   // 5. Processed events (Idempotency table to prevent double-processing)
   await p.query(`
     CREATE TABLE IF NOT EXISTS processed_events (

@@ -386,9 +386,188 @@
     .clickable-row:hover {
       background: rgba(2, 132, 199, 0.15) !important;
     }
+
+    /* Sleek Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+    /* Interactive Floating Toast Container */
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      background: #0f172a;
+      border: 1px solid var(--accent);
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 280px;
+      max-width: 400px;
+      pointer-events: auto;
+      animation: slideIn 0.25s ease-out;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .toast.success { border-color: var(--success); }
+    .toast.danger { border-color: var(--danger); }
+    .toast.warning { border-color: var(--warning); }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* Quick Preset Chips */
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .preset-chip {
+      background: #0d1527;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 11px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .preset-chip:hover {
+      border-color: var(--accent);
+      color: #fff;
+      background: rgba(2, 132, 199, 0.15);
+    }
+    .preset-chip.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent-bright);
+      box-shadow: 0 0 10px rgba(2, 132, 199, 0.3);
+    }
+
+    /* Department Pill Buttons */
+    .dept-pill-btn {
+      background: #0d1527;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 8px;
+      color: #fff;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .dept-pill-btn:hover {
+      border-color: var(--accent);
+      background: rgba(2, 132, 199, 0.1);
+    }
+    .dept-pill-btn.active {
+      border-color: var(--accent-bright);
+      background: rgba(2, 132, 199, 0.25);
+      box-shadow: 0 0 10px rgba(2, 132, 199, 0.35);
+    }
+
+    /* Stepper Component */
+    .stepper {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      margin: 12px 0 16px 0;
+    }
+    .stepper::before {
+      content: "";
+      position: absolute;
+      top: 13px;
+      left: 20px;
+      right: 20px;
+      height: 2px;
+      background: var(--border);
+      z-index: 1;
+    }
+    .step-item {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .step-dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #0a0e17;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-muted);
+      transition: all 0.3s;
+    }
+    .step-item.active .step-dot {
+      border-color: var(--accent-bright);
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 10px var(--accent-bright);
+    }
+    .step-item.completed .step-dot {
+      border-color: var(--success);
+      background: var(--success);
+      color: #fff;
+    }
+    .step-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .step-item.active .step-title {
+      color: var(--accent-bright);
+    }
+    .step-item.completed .step-title {
+      color: var(--success);
+    }
+
+    /* Capacity Progress Bar */
+    .capacity-bar-bg {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    .capacity-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
   </style>
 </head>
 <body>
+
+<!-- FLOATING TOAST CONTAINER -->
+<div id="toastContainer"></div>
 
 <!-- TOP BAR -->
 <div class="top-bar">
@@ -399,13 +578,19 @@
       <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Hyderabad City Emergency Bed & Dispatch Network</span>
     </div>
   </div>
-  <div style="display: flex; align-items: center; gap: 14px;">
-    <a href="/architecture.html" style="background: rgba(2, 132, 199, 0.15); border: 1px solid var(--accent); color: var(--accent-bright); padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
-      <span>🏛️ Architecture & ADR</span>
+  <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <div id="liveClock" style="font-family: monospace; font-size: 12px; color: var(--accent-bright); font-weight: 700; background: #070a12; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);">
+      --:--:-- IST
+    </div>
+    <button class="btn btn-danger" style="width: auto; padding: 6px 14px; font-size: 11px;" onclick="triggerQuickEmergencyDemo()">
+      🚨 1-Click Critical Demo
+    </button>
+    <a href="/architecture.html" style="background: rgba(2, 132, 199, 0.15); border: 1px solid var(--accent); color: var(--accent-bright); padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+      <span>🏛️ Architecture</span>
     </a>
     <div class="conn-status">
       <div class="conn-dot" id="connDot"></div>
-      <span id="connLabel">Connecting WebSocket stream...</span>
+      <span id="connLabel" style="font-size: 12px;">Live</span>
     </div>
   </div>
 </div>
@@ -426,23 +611,23 @@
 
 <!-- METRICS BAR -->
 <div class="metrics-grid">
-  <div class="metric-card">
+  <div class="metric-card" onclick="setTab('table')" style="cursor: pointer;">
     <div class="metric-val" id="metricHosp">50</div>
     <div class="metric-label">Hospitals Mapped</div>
   </div>
-  <div class="metric-card success">
+  <div class="metric-card success" onclick="setTab('dispatch')" style="cursor: pointer;">
     <div class="metric-val" id="metricIcu">--</div>
     <div class="metric-label">City Free ICUs</div>
   </div>
-  <div class="metric-card">
+  <div class="metric-card" onclick="setTab('dispatch')" style="cursor: pointer;">
     <div class="metric-val" id="metricVent">--</div>
     <div class="metric-label">Free Ventilators</div>
   </div>
-  <div class="metric-card warning">
+  <div class="metric-card warning" onclick="setTab('transfers')" style="cursor: pointer;">
     <div class="metric-val" id="metricTransfers">0</div>
     <div class="metric-label">Active Transfers</div>
   </div>
-  <div class="metric-card">
+  <div class="metric-card" onclick="setTab('dispatch')" style="cursor: pointer;">
     <div class="metric-val" id="metricDispatches">--</div>
     <div class="metric-label">Dispatches Logged</div>
   </div>
@@ -482,7 +667,7 @@
       </div>
     </div>
     <div id="map"></div>
-    <div style="display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+    <div style="display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap;">
       <div>🟢 Hospital with Free Beds</div>
       <div>🔴 Hospital at Capacity (0 Free ICUs)</div>
       <div>🔷 Active Roaming Ambulance (GPS Live)</div>
@@ -500,6 +685,17 @@
       <div class="card-header">
         <div class="card-title">Emergency Bed Finder & Dispatch</div>
         <div class="badge" style="background: var(--accent); color: #fff;">Fast Index + Two-Tier Lock</div>
+      </div>
+
+      <!-- QUICK PRESET CHIPS -->
+      <label>1-Click Location Presets</label>
+      <div class="chip-group" id="presetChips">
+        <span class="preset-chip active" onclick="selectPresetAmb('ambulance-TS-09-EM-1001')">📍 Cyber Towers (Madhapur)</span>
+        <span class="preset-chip" onclick="selectPresetAmb('ambulance-TS-09-EM-1006')">📍 Jubilee Hills Checkpost</span>
+        <span class="preset-chip" onclick="selectPresetAmb('ambulance-TS-09-EM-1002')">📍 Secunderabad Station</span>
+        <span class="preset-chip" onclick="selectPresetAmb('ambulance-TS-09-EM-1003')">📍 Charminar Old City</span>
+        <span class="preset-chip" onclick="selectPresetAmb('ambulance-TS-09-EM-1005')">📍 Gachibowli ORR</span>
+        <span class="preset-chip" onclick="selectPresetAmb('ambulance-TS-09-EM-1011')">📍 Ameerpet Metro</span>
       </div>
 
       <label>Select Ambulance Unit</label>
@@ -522,15 +718,32 @@
       </select>
 
       <label>Required Department / Ward</label>
-      <select id="ambWard" onchange="onWardChange()">
-        <option value="ICU">ICU (Intensive Care Unit)</option>
-        <option value="VENTILATOR">Ventilator Assisted</option>
-        <option value="GENERAL">General Emergency</option>
-        <option value="PEDIATRIC">Pediatric Emergency</option>
-      </select>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px;">
+        <button type="button" class="dept-pill-btn active" id="deptBtnICU" onclick="selectWard('ICU')">
+          <div style="font-size: 15px;">🫀</div>
+          <div style="font-size: 11px; font-weight: 800;">ICU</div>
+          <div style="font-size: 9px; color: var(--accent-bright);" id="wardBadgeICU">Free: --</div>
+        </button>
+        <button type="button" class="dept-pill-btn" id="deptBtnVENTILATOR" onclick="selectWard('VENTILATOR')">
+          <div style="font-size: 15px;">🫁</div>
+          <div style="font-size: 11px; font-weight: 800;">Ventilator</div>
+          <div style="font-size: 9px; color: var(--warning);" id="wardBadgeVENTILATOR">Free: --</div>
+        </button>
+        <button type="button" class="dept-pill-btn" id="deptBtnGENERAL" onclick="selectWard('GENERAL')">
+          <div style="font-size: 15px;">🏥</div>
+          <div style="font-size: 11px; font-weight: 800;">General</div>
+          <div style="font-size: 9px; color: var(--success);" id="wardBadgeGENERAL">Free: --</div>
+        </button>
+        <button type="button" class="dept-pill-btn" id="deptBtnPEDIATRIC" onclick="selectWard('PEDIATRIC')">
+          <div style="font-size: 15px;">👶</div>
+          <div style="font-size: 11px; font-weight: 800;">Pediatric</div>
+          <div style="font-size: 9px; color: var(--purple);" id="wardBadgePEDIATRIC">Free: --</div>
+        </button>
+      </div>
+      <input type="hidden" id="ambWard" value="ICU">
 
       <!-- AUTO-BOOK TOGGLE -->
-      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; background: rgba(2, 132, 199, 0.1); border: 1px solid var(--accent); padding: 10px; border-radius: 6px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; background: rgba(2, 132, 199, 0.1); border: 1px solid var(--accent); padding: 8px 12px; border-radius: 6px;">
         <input type="checkbox" id="autoBookToggle" checked style="width: 18px; height: 18px; margin: 0; cursor: pointer;">
         <label for="autoBookToggle" style="margin: 0; cursor: pointer; color: var(--accent-bright); font-size: 12px; font-weight: 700;">
           ⚡ Auto-Book & Navigate to Nearest Hospital on Selection
@@ -555,12 +768,23 @@
       <button class="btn btn-outline" onclick="transmitGps()">📍 Transmit Live GPS Ping</button>
 
       <!-- NEAREST HOSPITALS RADAR -->
-      <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px;">
+      <div style="margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <label style="margin: 0; font-size: 11px;">📍 Nearest Hospitals Radar (Live Distance & Facilities)</label>
           <span class="badge" id="radarStatus" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-bright);">Live</span>
         </div>
-        <div id="nearbyRadarList" style="display: flex; flex-direction: column; gap: 8px; max-height: 230px; overflow-y: auto;">
+
+        <!-- RADAR FILTER TABS & SEARCH -->
+        <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 4px; background: #070a12; padding: 3px; border-radius: 6px; border: 1px solid var(--border);">
+            <button class="preset-chip active" id="radarFilterAll" onclick="setRadarFilter('all')" style="border: none; padding: 3px 8px; font-size: 10px;">All Nearby</button>
+            <button class="preset-chip" id="radarFilterAvailable" onclick="setRadarFilter('available')" style="border: none; padding: 3px 8px; font-size: 10px;">🟢 Available</button>
+            <button class="preset-chip" id="radarFilterClose" onclick="setRadarFilter('close')" style="border: none; padding: 3px 8px; font-size: 10px;">⚡ &lt; 4 km</button>
+          </div>
+          <input type="text" id="radarSearchInput" placeholder="Filter radar by hospital..." style="flex: 1; min-width: 140px; margin-bottom: 0; padding: 6px 10px; font-size: 11px;" onkeyup="filterRadarList()">
+        </div>
+
+        <div id="nearbyRadarList" style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto;">
           <div style="color: var(--text-muted); font-size: 12px; padding: 10px; text-align: center;">Scanning nearest hospitals...</div>
         </div>
       </div>
@@ -593,10 +817,31 @@
         <button class="btn btn-outline" onclick="clearDispatchResult()">Dismiss</button>
       </div>
 
+      <!-- ACTIVE DISPATCH CARD -->
       <div id="activeDispatchCard" class="dispatch-result-box active" style="display: none;">
         <div class="dispatch-title">
           <span style="color: var(--success);">✅ BED RESERVED & DISPATCH ASSIGNED</span>
           <span class="badge" id="dispPriorityBadge" style="background: var(--danger); color: #fff;">CRITICAL</span>
+        </div>
+
+        <!-- PROGRESS STEPPER -->
+        <div class="stepper" id="dispatchStepper">
+          <div class="step-item completed" id="step1">
+            <div class="step-dot">1</div>
+            <div class="step-title">Requested</div>
+          </div>
+          <div class="step-item active" id="step2">
+            <div class="step-dot">2</div>
+            <div class="step-title">Bed Locked</div>
+          </div>
+          <div class="step-item" id="step3">
+            <div class="step-dot">3</div>
+            <div class="step-title">En Route</div>
+          </div>
+          <div class="step-item" id="step4">
+            <div class="step-dot">4</div>
+            <div class="step-title">Admitted</div>
+          </div>
         </div>
 
         <div style="margin-bottom: 10px;">
@@ -620,6 +865,18 @@
           <div class="dispatch-stat-item">
             <div class="dispatch-stat-val" id="dispLatency" style="color: var(--success);">18 ms</div>
             <div class="dispatch-stat-label">Search Latency</div>
+          </div>
+        </div>
+
+        <!-- SIMULATION CONTROLLER -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: rgba(2, 132, 199, 0.08); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);">
+          <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">
+            🏎️ Navigation Speed:
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn btn-outline" style="width: auto; padding: 2px 8px; font-size: 10px;" id="speed1x" onclick="setNavSpeed(1)">1x</button>
+            <button class="btn btn-outline" style="width: auto; padding: 2px 8px; font-size: 10px;" id="speed2x" onclick="setNavSpeed(2)">2x</button>
+            <button class="btn btn-outline" style="width: auto; padding: 2px 8px; font-size: 10px;" id="speed5x" onclick="setNavSpeed(5)">5x Fast</button>
           </div>
         </div>
 
@@ -672,8 +929,25 @@
           Persisted directly in MySQL with exact request arrival timestamps, decisions, and before/after bed snapshots. Click any row for full audit summary.
         </div>
       </div>
-      <button class="btn btn-outline" style="width: auto; padding: 6px 14px; font-size: 11px;" onclick="loadDispatchesTable()">↻ Refresh Database Records</button>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-outline" style="width: auto; padding: 6px 12px; font-size: 11px;" onclick="exportRequestsCsv()">📥 Export CSV</button>
+        <button class="btn btn-outline" style="width: auto; padding: 6px 14px; font-size: 11px;" onclick="loadDispatchesTable()">↻ Refresh</button>
+      </div>
     </div>
+
+    <!-- FILTER BAR FOR AUDIT TABLE -->
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <button class="preset-chip active" id="auditFilterAll" onclick="setAuditFilter('ALL')">All Requests</button>
+        <button class="preset-chip" id="auditFilterApproved" onclick="setAuditFilter('APPROVED')">🟢 Approved</button>
+        <button class="preset-chip" id="auditFilterRejected" onclick="setAuditFilter('REJECTED')">🔴 Rejected</button>
+        <button class="preset-chip" id="auditFilterArrived" onclick="setAuditFilter('ARRIVED')">🟣 Arrived</button>
+      </div>
+      <div style="flex: 1; max-width: 320px;">
+        <input type="text" id="auditSearchInput" placeholder="Search requests by ambulance, hospital..." style="margin-bottom: 0; padding: 6px 12px; font-size: 12px;" onkeyup="filterDispatchesTable()">
+      </div>
+    </div>
+
     <div class="table-container" style="max-height: 280px;">
       <table id="dispatchTable">
         <thead>
@@ -714,8 +988,25 @@
       </div>
     </div>
 
-    <label>Select Hospital Facility</label>
-    <select id="hospSelect" onchange="loadHospitalWards()"></select>
+    <div style="display: flex; gap: 12px; align-items: flex-end; margin-bottom: 12px; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 260px;">
+        <label>Select Hospital Facility</label>
+        <select id="hospSelect" onchange="loadHospitalWards()" style="margin-bottom: 0;"></select>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button class="btn btn-success" style="width: auto; padding: 9px 14px; font-size: 12px;" onclick="admitRandomEmergency()">⚡ Quick Admit Patient</button>
+        <button class="btn btn-outline" style="width: auto; padding: 9px 14px; font-size: 12px;" onclick="dischargeFirstOccupied()">🔄 Discharge Patient</button>
+      </div>
+    </div>
+
+    <!-- WARD FILTER BUTTONS -->
+    <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+      <button class="preset-chip active" id="wardFilterAll" onclick="setWardFilter('ALL')">All Beds (<span id="wardTotalCount">--</span>)</button>
+      <button class="preset-chip" id="wardFilterICU" onclick="setWardFilter('ICU')">🫀 ICU Beds</button>
+      <button class="preset-chip" id="wardFilterVENTILATOR" onclick="setWardFilter('VENTILATOR')">🫁 Ventilator Beds</button>
+      <button class="preset-chip" id="wardFilterGENERAL" onclick="setWardFilter('GENERAL')">🏥 General Beds</button>
+      <button class="preset-chip" id="wardFilterPEDIATRIC" onclick="setWardFilter('PEDIATRIC')">👶 Pediatric Beds</button>
+    </div>
 
     <div class="bed-matrix" id="bedMatrix"></div>
   </div>
@@ -733,6 +1024,7 @@
           Distributed Saga with 15-Minute Expiry & Compensating Rollback Transitions
         </div>
       </div>
+      <button class="btn btn-primary" style="width: auto; padding: 6px 14px; font-size: 11px;" onclick="quickFillSagaDemo()">⚡ Quick Demo: Pre-fill Transfer</button>
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
@@ -920,6 +1212,12 @@
   let currentIncomingTransfer = null;
   let currentActiveDispatch = null;
   let countdownTimerId = null;
+  let navSpeedMultiplier = 1;
+  let nearbyRadarHospitalsCache = [];
+  let currentRadarFilter = 'all';
+  let currentAuditFilter = 'ALL';
+  let currentHospitalBeds = [];
+  let currentWardFilter = 'ALL';
   const logDiv = document.getElementById('log');
 
   function log(msg) {
@@ -928,6 +1226,32 @@
       logDiv.innerHTML = `[${time}] ${msg}<br>` + logDiv.innerHTML;
     }
   }
+
+  // Floating Toast Notifications
+  function showToast(msg, type = 'info') {
+    const c = document.getElementById('toastContainer');
+    if (!c) return;
+    const t = document.createElement('div');
+    const icon = type === 'success' ? '✅' : type === 'danger' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+    t.className = `toast ${type}`;
+    t.innerHTML = `<span style="font-size:16px;">${icon}</span><div style="flex:1;">${msg}</div>`;
+    c.appendChild(t);
+    setTimeout(() => {
+      t.style.opacity = '0';
+      t.style.transform = 'translateX(100%)';
+      setTimeout(() => t.remove(), 300);
+    }, 3500);
+  }
+
+  // Live Digital Clock
+  function updateClock() {
+    const el = document.getElementById('liveClock');
+    if (el) {
+      const now = new Date();
+      el.innerText = now.toLocaleTimeString('en-US', { hour12: false }) + ' IST';
+    }
+  }
+  setInterval(updateClock, 1000);
 
   // 1. Initialize Map centered on Hyderabad
   function initMap() {
@@ -939,6 +1263,78 @@
 
   function centerMap() {
     if (map) map.setView([17.4065, 78.4772], 12);
+  }
+
+  // Quick 1-Click Preset Location Switcher
+  function selectPresetAmb(actorId) {
+    const sel = document.getElementById('ambSelect');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === actorId) {
+        sel.selectedIndex = i;
+        break;
+      }
+    }
+    document.querySelectorAll('#presetChips .preset-chip').forEach(ch => {
+      if (ch.getAttribute('onclick')?.includes(actorId)) ch.classList.add('active');
+      else ch.classList.remove('active');
+    });
+    onAmbulanceSelect();
+    const locName = sel.options[sel.selectedIndex].text.split('(')[1]?.replace(')', '') || actorId;
+    showToast(`Switched unit to ${locName}`, 'info');
+  }
+
+  // Interactive Ward Selector
+  function selectWard(ward) {
+    document.getElementById('ambWard').value = ward;
+    ['ICU', 'VENTILATOR', 'GENERAL', 'PEDIATRIC'].forEach(w => {
+      const btn = document.getElementById(`deptBtn${w}`);
+      if (btn) {
+        if (w === ward) btn.classList.add('active');
+        else btn.classList.remove('active');
+      }
+    });
+    onWardChange();
+    showToast(`Required Department set to ${ward}`, 'info');
+  }
+
+  // 1-Click Critical Emergency Demo Trigger
+  function triggerQuickEmergencyDemo() {
+    setTab('dispatch');
+    selectPresetAmb('ambulance-TS-09-EM-1001');
+    selectWard('ICU');
+    showToast('🚨 Triggering Instant Critical Emergency Bed Search & Dispatch...', 'danger');
+    setTimeout(() => {
+      requestBed('CRITICAL');
+    }, 350);
+  }
+
+  // Navigation Speed Controller
+  function setNavSpeed(speed) {
+    navSpeedMultiplier = speed;
+    ['1', '2', '5'].forEach(s => {
+      const b = document.getElementById(`speed${s}x`);
+      if (b) {
+        if (s === `${speed}`) {
+          b.classList.add('btn-primary');
+          b.classList.remove('btn-outline');
+        } else {
+          b.classList.remove('btn-primary');
+          b.classList.add('btn-outline');
+        }
+      }
+    });
+    showToast(`Simulation navigation speed: ${speed}x`, 'info');
+  }
+
+  // Interactive Stepper
+  function setDispatchStep(step) {
+    for (let i = 1; i <= 4; i++) {
+      const el = document.getElementById(`step${i}`);
+      if (!el) continue;
+      el.classList.remove('active', 'completed');
+      if (i < step) el.classList.add('completed');
+      else if (i === step) el.classList.add('active');
+    }
   }
 
   async function onAmbulanceSelect() {
@@ -965,6 +1361,23 @@
     }
   }
 
+  // Radar Filters and Search
+  function setRadarFilter(filter) {
+    currentRadarFilter = filter;
+    ['all', 'available', 'close'].forEach(f => {
+      const el = document.getElementById(`radarFilter${f.charAt(0).toUpperCase() + f.slice(1)}`);
+      if (el) {
+        if (f === filter) el.classList.add('active');
+        else el.classList.remove('active');
+      }
+    });
+    renderRadarList(nearbyRadarHospitalsCache);
+  }
+
+  function filterRadarList() {
+    renderRadarList(nearbyRadarHospitalsCache);
+  }
+
   async function scanNearbyHospitals() {
     const lat = parseFloat(document.getElementById('ambLat').value);
     const lon = parseFloat(document.getElementById('ambLon').value);
@@ -977,46 +1390,71 @@
     try {
       const res = await fetch(`/api/hospitals/nearby?lat=${lat}&lon=${lon}&bedType=${bedType}`);
       const nearby = await res.json();
-
-      let foundBest = false;
-      radarDiv.innerHTML = nearby.map(h => {
-        const hasBeds = h.hasFacility && Number(h.freeBedsForType) > 0;
-        const isMatch = !foundBest && hasBeds;
-        if (isMatch) foundBest = true;
-
-        const distanceKm = (h.distanceMeters / 1000).toFixed(1);
-        const etaMin = Math.round(h.durationSeconds / 60);
-
-        return `
-          <div style="background: ${isMatch ? 'rgba(2, 132, 199, 0.15)' : '#070b13'}; border: 1px solid ${isMatch ? 'var(--accent)' : hasBeds ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}; border-radius: 6px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <div style="flex: 1; padding-right: 10px;">
-              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <strong style="color: #fff; font-size: 13px;">${h.name}</strong>
-                ${isMatch ? '<span class="badge" style="background: var(--accent); color: #fff;">🎯 AUTO-TARGET MATCH</span>' : ''}
-                ${hasBeds 
-                  ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success);">🟢 AVAILABLE: ${h.freeBedsForType} Free ${bedType}s</span>`
-                  : `<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger);">🔴 FULL / NO BEDS (0 Free)</span>`
-                }
-              </div>
-              <div style="font-size: 11px; color: var(--accent-bright); margin-top: 2px;">
-                📍 <strong>${distanceKm} km</strong> road distance • ⏱️ <strong>~${etaMin} min travel time</strong>
-              </div>
-              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
-                Bed Breakdown: <strong>ICU: ${h.freeICU}</strong> | <strong>Vent: ${h.freeVentilator}</strong> | <strong>Gen: ${h.freeGeneral}</strong> (Total Free: ${h.totalFree || '--'})
-              </div>
-            </div>
-            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 130px;">
-              ${hasBeds 
-                ? `<button class="btn btn-primary" style="width: auto; padding: 5px 12px; font-size: 11px;" onclick="requestBedWithHospital('CRITICAL', '${h.id}')">Book & Navigate &rarr;</button>`
-                : `<button class="btn btn-danger" style="width: auto; padding: 5px 12px; font-size: 11px; opacity: 0.85;" onclick="requestBedWithHospital('CRITICAL', '${h.id}')">Test Reject (0 Beds)</button>`
-              }
-            </div>
-          </div>
-        `;
-      }).join('');
+      nearbyRadarHospitalsCache = nearby || [];
+      renderRadarList(nearbyRadarHospitalsCache);
     } catch (e) {
       radarDiv.innerHTML = '<div style="color: var(--danger); font-size: 11px;">Radar scan error</div>';
     }
+  }
+
+  function renderRadarList(nearby) {
+    const radarDiv = document.getElementById('nearbyRadarList');
+    if (!radarDiv) return;
+    const q = (document.getElementById('radarSearchInput')?.value || '').toLowerCase().trim();
+    const bedType = document.getElementById('ambWard')?.value || 'ICU';
+
+    let filtered = nearby.filter(h => {
+      if (currentRadarFilter === 'available' && !(h.hasFacility && Number(h.freeBedsForType) > 0)) return false;
+      if (currentRadarFilter === 'close' && h.distanceMeters > 4000) return false;
+      if (q && !h.name.toLowerCase().includes(q) && !h.address.toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      radarDiv.innerHTML = '<div style="color: var(--text-muted); font-size: 11px; padding: 12px; text-align: center;">No matching hospitals found for current filter.</div>';
+      return;
+    }
+
+    let foundBest = false;
+    radarDiv.innerHTML = filtered.map(h => {
+      const hasBeds = h.hasFacility && Number(h.freeBedsForType) > 0;
+      const isMatch = !foundBest && hasBeds;
+      if (isMatch) foundBest = true;
+
+      const distanceKm = (h.distanceMeters / 1000).toFixed(1);
+      const etaMin = Math.round(h.durationSeconds / 60);
+      const freePct = Math.round(((h.totalFree || 50) / (h.totalBeds || 100)) * 100);
+
+      return `
+        <div style="background: ${isMatch ? 'rgba(2, 132, 199, 0.15)' : '#070b13'}; border: 1px solid ${isMatch ? 'var(--accent)' : hasBeds ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}; border-radius: 6px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <div style="flex: 1; padding-right: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <strong style="color: #fff; font-size: 13px;">${h.name}</strong>
+              ${isMatch ? '<span class="badge" style="background: var(--accent); color: #fff;">🎯 AUTO-TARGET MATCH</span>' : ''}
+              ${hasBeds 
+                ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success);">🟢 AVAILABLE: ${h.freeBedsForType} Free</span>`
+                : `<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger);">🔴 FULL / NO BEDS (0 Free)</span>`
+              }
+            </div>
+            <div style="font-size: 11px; color: var(--accent-bright); margin-top: 2px;">
+              📍 <strong>${distanceKm} km</strong> road distance • ⏱️ <strong>~${etaMin} min travel time</strong>
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+              Bed Breakdown: <strong>ICU: ${h.freeICU}</strong> | <strong>Vent: ${h.freeVentilator}</strong> | <strong>Gen: ${h.freeGeneral}</strong> (Total Free: ${h.totalFree || '--'})
+            </div>
+            <div class="capacity-bar-bg">
+              <div class="capacity-bar-fill" style="width: ${freePct}%; background: ${hasBeds ? 'var(--success)' : 'var(--danger)'};"></div>
+            </div>
+          </div>
+          <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 130px;">
+            ${hasBeds 
+              ? `<button class="btn btn-primary" style="width: auto; padding: 5px 12px; font-size: 11px;" onclick="requestBedWithHospital('CRITICAL', '${h.id}')">⚡ Book & Navigate</button>`
+              : `<button class="btn btn-danger" style="width: auto; padding: 5px 12px; font-size: 11px; opacity: 0.85;" onclick="requestBedWithHospital('CRITICAL', '${h.id}')">⚠️ Test 0-Bed Reject</button>`
+            }
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   // 2. Initialize WebSocket with Auto-Reconnect
@@ -1027,7 +1465,7 @@
 
     socket.onopen = () => {
       document.getElementById('connDot').className = 'conn-dot online';
-      document.getElementById('connLabel').innerText = 'Connected to Cluster';
+      document.getElementById('connLabel').innerText = 'Connected';
       socket.send(JSON.stringify({
         type: 'register',
         actorId: 'control-room-monitor',
@@ -1056,6 +1494,7 @@
         document.getElementById('transferAlert').style.display = 'block';
         document.getElementById('transferAlertMsg').innerText = 
           `Hospital #${msg.payload.toHospitalId.slice(0, 6)}: ${msg.payload.priority} transfer requested. Bed reserved.`;
+        showToast(`⚠️ Transfer alert received for Hospital #${msg.payload.toHospitalId.slice(0, 6)}`, 'warning');
       } else if (msg.type === 'transferAccepted' || msg.type === 'transferRolledBack') {
         document.getElementById('transferAlert').style.display = 'none';
       }
@@ -1073,7 +1512,7 @@
 
   // 3. Tab Navigation
   function setTab(tab) {
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.nav-tabs .nav-btn').forEach(b => b.classList.remove('active'));
     event.currentTarget.classList.add('active');
 
     document.getElementById('viewMap').style.display = tab === 'map' ? 'block' : 'none';
@@ -1108,8 +1547,26 @@
 
       const icu = metrics.freeBedsByType.find(b => b.bed_type === 'ICU');
       const vent = metrics.freeBedsByType.find(b => b.bed_type === 'VENTILATOR');
-      if (icu) document.getElementById('metricIcu').innerText = icu.free;
-      if (vent) document.getElementById('metricVent').innerText = vent.free;
+      const gen = metrics.freeBedsByType.find(b => b.bed_type === 'GENERAL');
+      const ped = metrics.freeBedsByType.find(b => b.bed_type === 'PEDIATRIC');
+      if (icu) {
+        document.getElementById('metricIcu').innerText = icu.free;
+        const b = document.getElementById('wardBadgeICU');
+        if (b) b.innerText = `Free: ${icu.free}`;
+      }
+      if (vent) {
+        document.getElementById('metricVent').innerText = vent.free;
+        const b = document.getElementById('wardBadgeVENTILATOR');
+        if (b) b.innerText = `Free: ${vent.free}`;
+      }
+      if (gen) {
+        const b = document.getElementById('wardBadgeGENERAL');
+        if (b) b.innerText = `Free: ${gen.free}`;
+      }
+      if (ped) {
+        const b = document.getElementById('wardBadgePEDIATRIC');
+        if (b) b.innerText = `Free: ${ped.free}`;
+      }
 
       // Hospitals
       const hRes = await fetch('/api/hospitals');
@@ -1208,15 +1665,38 @@
     });
   }
 
+  // WARD CONSOLE: Filtered Ward Matrix
+  function setWardFilter(filter) {
+    currentWardFilter = filter;
+    ['All', 'ICU', 'VENTILATOR', 'GENERAL', 'PEDIATRIC'].forEach(f => {
+      const btn = document.getElementById(`wardFilter${f}`);
+      if (btn) {
+        if (f.toUpperCase() === filter) btn.classList.add('active');
+        else btn.classList.remove('active');
+      }
+    });
+    renderFilteredBeds();
+  }
+
   async function loadHospitalWards() {
     const hospId = document.getElementById('hospSelect').value;
     if (!hospId) return;
     const res = await fetch(`/api/hospitals/${hospId}/beds`);
-    const beds = await res.json();
-    const matrix = document.getElementById('bedMatrix');
+    currentHospitalBeds = await res.json();
+    const countEl = document.getElementById('wardTotalCount');
+    if (countEl) countEl.innerText = currentHospitalBeds.length;
+    renderFilteredBeds();
+  }
 
+  function renderFilteredBeds() {
+    const matrix = document.getElementById('bedMatrix');
+    if (!matrix) return;
+    let beds = currentHospitalBeds;
+    if (currentWardFilter !== 'ALL') {
+      beds = beds.filter(b => b.bed_type === currentWardFilter);
+    }
     matrix.innerHTML = beds.map(b => `
-      <div class="bed-item ${b.status}" onclick="toggleBed('${b.id}', '${b.status}')">
+      <div class="bed-item ${b.status}" onclick="toggleBed('${b.id}', '${b.status}')" title="Click to toggle bed status">
         <div class="bed-item-type">${b.bed_type}</div>
         <div class="bed-item-status">${b.status}</div>
       </div>
@@ -1232,7 +1712,26 @@
       payload: { bedId, occupied: targetStatus === 'OCCUPIED', status: targetStatus }
     }));
     log(`&rarr; Hospital Bed Action: ${bedId.slice(0, 8)} set to ${targetStatus}`);
+    showToast(`Bed #${bedId.slice(0, 6)} set to ${targetStatus}`, targetStatus === 'FREE' ? 'success' : 'info');
     setTimeout(loadHospitalWards, 300);
+  }
+
+  function admitRandomEmergency() {
+    const freeBed = currentHospitalBeds.find(b => b.status === 'FREE');
+    if (!freeBed) {
+      return showToast('No FREE bed available in selected hospital to admit emergency patient!', 'danger');
+    }
+    toggleBed(freeBed.id, 'FREE');
+    showToast(`Admitted emergency patient into ${freeBed.bed_type} Bed #${freeBed.id.slice(0, 6)}`, 'success');
+  }
+
+  function dischargeFirstOccupied() {
+    const occBed = currentHospitalBeds.find(b => b.status === 'OCCUPIED' || b.status === 'RESERVED');
+    if (!occBed) {
+      return showToast('No occupied beds to discharge in this hospital', 'info');
+    }
+    toggleBed(occBed.id, occBed.status);
+    showToast(`Discharged patient from ${occBed.bed_type} Bed #${occBed.id.slice(0, 6)} (Bed Freed)`, 'info');
   }
 
   // 5. AMBULANCE BED REQUEST & LIVE CARD DISPLAY
@@ -1243,6 +1742,7 @@
     const lat = parseFloat(document.getElementById('ambLat').value);
     const lon = parseFloat(document.getElementById('ambLon').value);
 
+    setDispatchStep(1);
     socket.send(JSON.stringify({
       type: 'requestBed',
       actorId,
@@ -1258,6 +1758,7 @@
     const lat = parseFloat(document.getElementById('ambLat').value);
     const lon = parseFloat(document.getElementById('ambLon').value);
 
+    setDispatchStep(1);
     socket.send(JSON.stringify({
       type: 'requestBed',
       actorId,
@@ -1272,6 +1773,9 @@
     const rejBox = document.getElementById('rejectedDispatchCard');
     if (rejBox) rejBox.style.display = 'none';
     document.getElementById('activeDispatchCard').style.display = 'block';
+
+    setDispatchStep(2);
+    showToast(`✅ Bed Reserved at ${payload.hospitalName} (${(payload.distanceMeters / 1000).toFixed(1)} km, ~${Math.round(payload.estimatedArrivalSec / 60)} min)`, 'success');
 
     document.getElementById('dispHospName').innerText = payload.hospitalName;
     document.getElementById('dispHospAddress').innerText = payload.hospitalAddress || 'Hyderabad Care Facility';
@@ -1327,13 +1831,15 @@
       navMarker.bindPopup(`<strong>🚑 ${payload.actorId}</strong><br>Navigating to ${payload.hospitalName}`);
       map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
 
-      // Simulated real-time turn-by-turn navigation progression
+      setDispatchStep(3); // En route
+
+      // Simulated real-time turn-by-turn navigation progression with speed multiplier
       let navProgress = 0;
       const totalSteps = 40;
       simulatedNavInterval = setInterval(() => {
+        navProgress += 1 * navSpeedMultiplier;
         if (navProgress < totalSteps) {
-          navProgress++;
-          const fraction = navProgress / totalSteps;
+          const fraction = Math.min(1, navProgress / totalSteps);
           const curLat = payload.pickupLat + fraction * (payload.hospitalLat - payload.pickupLat);
           const curLon = payload.pickupLon + fraction * (payload.hospitalLon - payload.pickupLon);
           navMarker.setLatLng([curLat, curLon]);
@@ -1348,6 +1854,8 @@
           clearInterval(simulatedNavInterval);
           document.getElementById('dispDistance').innerText = '0.0 km';
           document.getElementById('dispEta').innerText = 'ARRIVED AT ER';
+          setDispatchStep(4);
+          showToast(`🚑 ${payload.actorId} arrived at ${payload.hospitalName} Emergency Dept`, 'success');
         }
       }, 1000);
     }
@@ -1377,6 +1885,7 @@
         document.getElementById('rejBedsSummary').innerHTML = 'Zero matching beds available across the Hyderabad regional network.';
       }
     }
+    showToast(`❌ Booking Rejected: ${data.reason || '0 beds available'}`, 'danger');
     loadDispatchesTable();
   }
 
@@ -1392,6 +1901,7 @@
       if (remainingMs <= 0) {
         clearInterval(countdownTimerId);
         countdownEl.innerText = 'EXPIRED';
+        showToast('⚠️ Bed reservation timer expired (Auto-Released)', 'warning');
         clearDispatchResult();
         return;
       }
@@ -1429,6 +1939,7 @@
       payload: { actorId: currentActiveDispatch.actorId, bedId: currentActiveDispatch.bedId }
     }));
     log(`&rarr; Patient arrived. Admitted into ${currentActiveDispatch.hospitalName}`);
+    showToast(`✅ Patient admitted into ${currentActiveDispatch.hospitalName}`, 'success');
     clearDispatchResult();
   }
 
@@ -1440,7 +1951,25 @@
       payload: { actorId: currentActiveDispatch.actorId, bedId: currentActiveDispatch.bedId }
     }));
     log(`&rarr; Dispatch cancelled for ${currentActiveDispatch.actorId}. Bed released.`);
+    showToast('Dispatch cancelled. Bed resource unlocked and released.', 'warning');
     clearDispatchResult();
+  }
+
+  // Audit Table Filters & Search
+  function setAuditFilter(filter) {
+    currentAuditFilter = filter;
+    ['All', 'Approved', 'Rejected', 'Arrived'].forEach(f => {
+      const btn = document.getElementById(`auditFilter${f}`);
+      if (btn) {
+        if (f.toUpperCase() === filter) btn.classList.add('active');
+        else btn.classList.remove('active');
+      }
+    });
+    renderDispatchesTableFiltered();
+  }
+
+  function filterDispatchesTable() {
+    renderDispatchesTableFiltered();
   }
 
   async function loadDispatchesTable() {
@@ -1448,50 +1977,101 @@
       const res = await fetch('/api/requests');
       const requests = await res.json();
       allEmergencyRequests = requests || [];
-      const tbody = document.querySelector('#dispatchTable tbody');
-      if (tbody) {
-        if (!requests || requests.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 18px;">No emergency requests logged in database yet.</td></tr>';
-          return;
-        }
-        tbody.innerHTML = requests.slice(0, 30).map(r => {
-          const isApproved = r.decision === 'APPROVED' || r.status === 'ASSIGNED' || r.status === 'ARRIVED';
-          const decisionBadge = isApproved 
-            ? '<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success);">APPROVED</span>'
-            : '<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger);">REJECTED</span>';
-          
-          const statusBadge = `
-            <span class="badge" style="background: ${r.status === 'ASSIGNED' ? 'var(--warning)' : r.status === 'ARRIVED' ? 'var(--success)' : 'var(--danger)'}; color: #fff;">
-              ${r.status}
-            </span>
-          `;
-
-          const distanceStr = r.distance_meters ? `${(r.distance_meters / 1000).toFixed(1)} km` : '--';
-          const etaStr = r.estimated_duration_sec ? `${Math.round(r.estimated_duration_sec / 60)} min` : '--';
-
-          return `
-            <tr class="clickable-row" onclick="openRequestModal('${r.request_id}')">
-              <td style="color: var(--accent-bright); font-family: monospace; font-size: 11px;">
-                <strong>${r.formatted_time || new Date(r.requested_at).toLocaleString()}</strong>
-              </td>
-              <td><strong>${r.ambulance_id}</strong></td>
-              <td><strong>${r.assigned_hospital_name || 'Matching Network'}</strong></td>
-              <td><span class="badge" style="background: var(--accent); color: #fff;">${r.bed_type}</span></td>
-              <td>${decisionBadge} ${statusBadge}</td>
-              <td>${distanceStr}</td>
-              <td>${etaStr}</td>
-              <td>
-                <button class="btn btn-outline" style="width: auto; padding: 4px 10px; font-size: 11px;" onclick="event.stopPropagation(); openRequestModal('${r.request_id}')">
-                  🔍 View Summary
-                </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      }
+      renderDispatchesTableFiltered();
     } catch (e) {
       console.error('Error loading requests table:', e);
     }
+  }
+
+  function renderDispatchesTableFiltered() {
+    const tbody = document.querySelector('#dispatchTable tbody');
+    if (!tbody) return;
+    const q = (document.getElementById('auditSearchInput')?.value || '').toLowerCase().trim();
+
+    let list = allEmergencyRequests.filter(r => {
+      const isApproved = r.decision === 'APPROVED' || r.status === 'ASSIGNED' || r.status === 'ARRIVED';
+      if (currentAuditFilter === 'APPROVED' && !isApproved) return false;
+      if (currentAuditFilter === 'REJECTED' && (isApproved && r.status !== 'NO_BED')) return false;
+      if (currentAuditFilter === 'ARRIVED' && r.status !== 'ARRIVED') return false;
+
+      if (q) {
+        const match = (r.ambulance_id || '').toLowerCase().includes(q) ||
+                      (r.assigned_hospital_name || '').toLowerCase().includes(q) ||
+                      (r.bed_type || '').toLowerCase().includes(q) ||
+                      (r.formatted_time || '').toLowerCase().includes(q);
+        if (!match) return false;
+      }
+      return true;
+    });
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 18px;">No matching emergency records found.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.slice(0, 30).map(r => {
+      const isApproved = r.decision === 'APPROVED' || r.status === 'ASSIGNED' || r.status === 'ARRIVED';
+      const decisionBadge = isApproved 
+        ? '<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success);">APPROVED</span>'
+        : '<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger);">REJECTED</span>';
+      
+      const statusBadge = `
+        <span class="badge" style="background: ${r.status === 'ASSIGNED' ? 'var(--warning)' : r.status === 'ARRIVED' ? 'var(--success)' : 'var(--danger)'}; color: #fff;">
+          ${r.status}
+        </span>
+      `;
+
+      const distanceStr = r.distance_meters ? `${(r.distance_meters / 1000).toFixed(1)} km` : '--';
+      const etaStr = r.estimated_duration_sec ? `${Math.round(r.estimated_duration_sec / 60)} min` : '--';
+
+      return `
+        <tr class="clickable-row" onclick="openRequestModal('${r.request_id}')">
+          <td style="color: var(--accent-bright); font-family: monospace; font-size: 11px;">
+            <strong>${r.formatted_time || new Date(r.requested_at).toLocaleString()}</strong>
+          </td>
+          <td><strong>${r.ambulance_id}</strong></td>
+          <td><strong>${r.assigned_hospital_name || 'Matching Network'}</strong></td>
+          <td><span class="badge" style="background: var(--accent); color: #fff;">${r.bed_type}</span></td>
+          <td>${decisionBadge} ${statusBadge}</td>
+          <td>${distanceStr}</td>
+          <td>${etaStr}</td>
+          <td>
+            <button class="btn btn-outline" style="width: auto; padding: 4px 10px; font-size: 11px;" onclick="event.stopPropagation(); openRequestModal('${r.request_id}')">
+              🔍 View Summary
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Export to CSV
+  function exportRequestsCsv() {
+    if (!allEmergencyRequests || allEmergencyRequests.length === 0) {
+      return showToast('No request records available to export', 'warning');
+    }
+    const headers = ['Request Time', 'Request ID', 'Ambulance', 'Hospital', 'Ward', 'Decision', 'Status', 'Distance (m)', 'ETA (s)', 'Latency (ms)'];
+    const rows = allEmergencyRequests.map(r => [
+      `"${r.formatted_time || r.requested_at}"`,
+      `"${r.request_id}"`,
+      `"${r.ambulance_id}"`,
+      `"${r.assigned_hospital_name || ''}"`,
+      `"${r.bed_type}"`,
+      `"${r.decision || 'APPROVED'}"`,
+      `"${r.status}"`,
+      r.distance_meters || 0,
+      r.estimated_duration_sec || 0,
+      r.search_latency_ms || 0
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `medigrid_emergency_audit_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('📥 Emergency audit records exported to CSV', 'success');
   }
 
   function openRequestModal(requestId) {
@@ -1577,6 +2157,115 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeRequestModal();
   });
+
+  function transmitGps() {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return alert('WebSocket offline');
+    const actorId = document.getElementById('ambSelect').value;
+    const lat = parseFloat(document.getElementById('ambLat').value);
+    const lon = parseFloat(document.getElementById('ambLon').value);
+
+    socket.send(JSON.stringify({
+      type: 'ambulanceLocation',
+      actorId,
+      payload: { lat, lon, speed: 45.0, timestamp: Date.now() }
+    }));
+    log(`&rarr; Transmitted GPS ping for ${actorId}`);
+    showToast(`📍 Live GPS ping sent for ${actorId}`, 'info');
+  }
+
+  function quickFillSagaDemo() {
+    const fromSel = document.getElementById('transFrom');
+    const toSel = document.getElementById('transTo');
+    if (fromSel.options.length > 1 && toSel.options.length > 1) {
+      fromSel.selectedIndex = 0;
+      toSel.selectedIndex = 1;
+    }
+    document.getElementById('transPatient').value = `PAT-HYD-${Math.floor(1000 + Math.random() * 9000)}`;
+    document.getElementById('transBedType').value = 'ICU';
+    document.getElementById('transPriority').value = 'CRITICAL';
+    showToast('⚡ Pre-filled Critical Patient Saga Transfer form', 'success');
+  }
+
+  function dispatchTransfer() {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return alert('WebSocket offline');
+    const fromHosp = document.getElementById('transFrom').value;
+    const toHosp = document.getElementById('transTo').value;
+    const patientId = document.getElementById('transPatient').value;
+    const bedType = document.getElementById('transBedType').value;
+    const priority = document.getElementById('transPriority').value;
+
+    socket.send(JSON.stringify({
+      type: 'requestTransfer',
+      actorId: 'hospital-doctor',
+      payload: {
+        patientId,
+        fromHospitalId: fromHosp,
+        toHospitalId: toHosp,
+        sourceBedId: 'dummy-source',
+        bedType,
+        priority
+      }
+    }));
+    log(`&rarr; Initiated ${priority} transfer saga for ${patientId}`);
+    showToast(`Initiated ${priority} transfer saga for ${patientId}`, 'warning');
+  }
+
+  function acceptTransfer() {
+    if (!currentIncomingTransfer) return;
+    socket.send(JSON.stringify({
+      type: 'actionTransfer',
+      actorId: 'receiving-staff',
+      payload: { transferId: currentIncomingTransfer.transferId, action: 'ACCEPT' }
+    }));
+    document.getElementById('transferAlert').style.display = 'none';
+    showToast('Transfer Accepted & Bed Reserved', 'success');
+  }
+
+  function rejectTransfer() {
+    if (!currentIncomingTransfer) return;
+    socket.send(JSON.stringify({
+      type: 'actionTransfer',
+      actorId: 'receiving-staff',
+      payload: { transferId: currentIncomingTransfer.transferId, action: 'REJECT', reason: 'Department full' }
+    }));
+    document.getElementById('transferAlert').style.display = 'none';
+    showToast('Transfer Declined - Compensating rollback triggered', 'danger');
+  }
+
+  async function loadTransfersTable() {
+    try {
+      const res = await fetch('/api/transfers');
+      const transfers = await res.json();
+      const tbody = document.querySelector('#transTable tbody');
+      if (tbody) {
+        tbody.innerHTML = transfers.slice(0, 10).map(t => `
+          <tr>
+            <td><strong>${t.patient_id}</strong></td>
+            <td>${t.fromHospitalName.slice(0, 20)}... &rarr; ${t.toHospitalName.slice(0, 20)}...</td>
+            <td><span style="color: ${t.priority === 'CRITICAL' ? 'var(--danger)' : 'var(--accent-bright)'}; font-weight: bold;">${t.priority}</span></td>
+            <td><span class="badge" style="background: var(--border);">${t.step}</span></td>
+            <td style="color: var(--text-muted); font-size: 11px;">${new Date(t.created_at).toLocaleTimeString()}</td>
+          </tr>
+        `).join('');
+      }
+    } catch (e) {}
+  }
+
+  function filterHospitals() {
+    const q = document.getElementById('searchHosp').value.toLowerCase();
+    const filtered = allHospitals.filter(h => h.name.toLowerCase().includes(q) || h.address.toLowerCase().includes(q));
+    renderHospitalsTable(filtered);
+  }
+
+  window.onload = () => {
+    initMap();
+    initWs();
+    refreshData();
+    loadDispatchesTable();
+    scanNearbyHospitals();
+    setInterval(refreshData, 4000);
+  };
+</script>
 
   function transmitGps() {
     if (!socket || socket.readyState !== WebSocket.OPEN) return alert('WebSocket offline');

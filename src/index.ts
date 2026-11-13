@@ -514,6 +514,44 @@ app.get('/api/operations/metrics', async () => {
   };
 });
 
+app.get('/api/hospitals/nearby', async (req: any) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  const bedType = req.query.bedType || 'ICU';
+
+  if (isNaN(lat) || isNaN(lon)) {
+    return [];
+  }
+
+  const pool = await getDbPool();
+  const [rows]: any = await pool.query(`
+    SELECT h.id, h.name, h.lat, h.lon, h.phone, h.address,
+           COUNT(b.id) as totalBeds,
+           SUM(CASE WHEN b.status = 'FREE' AND b.bed_type = ? THEN 1 ELSE 0 END) as freeBedsForType,
+           SUM(CASE WHEN b.status = 'FREE' AND b.bed_type = 'ICU' THEN 1 ELSE 0 END) as freeICU,
+           SUM(CASE WHEN b.status = 'FREE' AND b.bed_type = 'VENTILATOR' THEN 1 ELSE 0 END) as freeVentilator,
+           SUM(CASE WHEN b.status = 'FREE' AND b.bed_type = 'GENERAL' THEN 1 ELSE 0 END) as freeGeneral
+    FROM hospitals h
+    LEFT JOIN beds b ON h.id = b.hospital_id
+    GROUP BY h.id, h.name, h.lat, h.lon, h.phone, h.address
+  `, [bedType]);
+
+  const nearby = rows.map((h: any) => {
+    const dist = haversineDistance(lat, lon, h.lat, h.lon);
+    const roadMeters = Math.round(dist * 1.28);
+    const etaSec = Math.round(roadMeters / 11.11);
+    const hasFacility = Number(h.freeBedsForType) > 0;
+    return {
+      ...h,
+      distanceMeters: roadMeters,
+      durationSeconds: etaSec,
+      hasFacility,
+    };
+  }).sort((a: any, b: any) => a.distanceMeters - b.distanceMeters);
+
+  return nearby.slice(0, 5);
+});
+
 app.get('/api/hospitals', async () => {
   const pool = await getDbPool();
   const [rows] = await pool.query(`

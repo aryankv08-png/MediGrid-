@@ -440,7 +440,7 @@
 <!-- ============================================================== -->
 <div id="viewDispatch" style="display: none;">
   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-    <!-- LEFT: DISPATCH INPUT FORM -->
+    <!-- LEFT: DISPATCH INPUT FORM & NEAREST RADAR -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">Emergency Bed Finder & Dispatch</div>
@@ -467,12 +467,20 @@
       </select>
 
       <label>Required Department / Ward</label>
-      <select id="ambWard">
+      <select id="ambWard" onchange="onWardChange()">
         <option value="ICU">ICU (Intensive Care Unit)</option>
         <option value="VENTILATOR">Ventilator Assisted</option>
         <option value="GENERAL">General Emergency</option>
         <option value="PEDIATRIC">Pediatric Emergency</option>
       </select>
+
+      <!-- AUTO-BOOK TOGGLE -->
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; background: rgba(2, 132, 199, 0.1); border: 1px solid var(--accent); padding: 10px; border-radius: 6px;">
+        <input type="checkbox" id="autoBookToggle" checked style="width: 18px; height: 18px; margin: 0; cursor: pointer;">
+        <label for="autoBookToggle" style="margin: 0; cursor: pointer; color: var(--accent-bright); font-size: 12px; font-weight: 700;">
+          ⚡ Auto-Book & Navigate to Nearest Hospital on Selection
+        </label>
+      </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
         <div>
@@ -486,10 +494,21 @@
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-        <button class="btn btn-danger" onclick="requestBed('CRITICAL')">🚨 CRITICAL Bed Request (Prio 10)</button>
-        <button class="btn btn-outline" onclick="requestBed('ROUTINE')">Routine Request (Prio 0)</button>
+        <button class="btn btn-danger" onclick="requestBed('CRITICAL')">🚨 Find & Book Nearest (Prio 10)</button>
+        <button class="btn btn-outline" onclick="requestBed('ROUTINE')">Routine Book (Prio 0)</button>
       </div>
       <button class="btn btn-outline" onclick="transmitGps()">📍 Transmit Live GPS Ping</button>
+
+      <!-- NEAREST HOSPITALS RADAR -->
+      <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label style="margin: 0; font-size: 11px;">📍 Nearest Hospitals Radar (Live Distance & Facilities)</label>
+          <span class="badge" id="radarStatus" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-bright);">Live</span>
+        </div>
+        <div id="nearbyRadarList" style="display: flex; flex-direction: column; gap: 8px; max-height: 230px; overflow-y: auto;">
+          <div style="color: var(--text-muted); font-size: 12px; padding: 10px; text-align: center;">Scanning nearest hospitals...</div>
+        </div>
+      </div>
     </div>
 
     <!-- RIGHT: LIVE RESERVATION CARD & DISPATCH STATUS -->
@@ -710,6 +729,8 @@
   let hospMarkers = [];
   let ambMarkersList = [];
   let routeLine = null;
+  let navMarker = null;
+  let simulatedNavInterval = null;
   let allHospitals = [];
   let currentIncomingTransfer = null;
   let currentActiveDispatch = null;
@@ -735,12 +756,73 @@
     if (map) map.setView([17.4065, 78.4772], 12);
   }
 
-  function onAmbulanceSelect() {
+  async function onAmbulanceSelect() {
     const sel = document.getElementById('ambSelect');
     const opt = sel.options[sel.selectedIndex];
     if (opt && opt.dataset.lat && opt.dataset.lon) {
       document.getElementById('ambLat').value = opt.dataset.lat;
       document.getElementById('ambLon').value = opt.dataset.lon;
+    }
+    await scanNearbyHospitals();
+    const autoBook = document.getElementById('autoBookToggle').checked;
+    if (autoBook) {
+      log(`⚡ Auto-selecting nearest hospital & booking for ${sel.value}...`);
+      requestBed('CRITICAL');
+    }
+  }
+
+  async function onWardChange() {
+    await scanNearbyHospitals();
+    const autoBook = document.getElementById('autoBookToggle').checked;
+    if (autoBook) {
+      log(`⚡ Re-booking nearest hospital with ${document.getElementById('ambWard').value} capacity...`);
+      requestBed('CRITICAL');
+    }
+  }
+
+  async function scanNearbyHospitals() {
+    const lat = parseFloat(document.getElementById('ambLat').value);
+    const lon = parseFloat(document.getElementById('ambLon').value);
+    const bedType = document.getElementById('ambWard').value;
+    const radarDiv = document.getElementById('nearbyRadarList');
+    if (!radarDiv) return;
+
+    radarDiv.innerHTML = '<div style="color: var(--text-muted); font-size: 11px; padding: 6px;">Scanning city network...</div>';
+
+    try {
+      const res = await fetch(`/api/hospitals/nearby?lat=${lat}&lon=${lon}&bedType=${bedType}`);
+      const nearby = await res.json();
+
+      let foundBest = false;
+      radarDiv.innerHTML = nearby.map(h => {
+        const isMatch = !foundBest && h.hasFacility;
+        if (isMatch) foundBest = true;
+
+        const distanceKm = (h.distanceMeters / 1000).toFixed(1);
+        const etaMin = Math.round(h.durationSeconds / 60);
+
+        return `
+          <div style="background: ${isMatch ? 'rgba(2, 132, 199, 0.15)' : '#070b13'}; border: 1px solid ${isMatch ? 'var(--accent)' : 'var(--border)'}; border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <strong style="color: #fff; font-size: 13px;">${h.name}</strong>
+                ${isMatch ? '<span class="badge" style="background: var(--accent); color: #fff;">🎯 TARGET MATCH</span>' : ''}
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                ${distanceKm} km • ~${etaMin} min ETA • ${h.address}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              ${h.hasFacility 
+                ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success);">✓ ${h.freeBedsForType} Free ${bedType}s</span>`
+                : `<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger);">✕ 0 Free</span>`
+              }
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (e) {
+      radarDiv.innerHTML = '<div style="color: var(--danger); font-size: 11px;">Radar scan error</div>';
     }
   }
 
@@ -994,17 +1076,56 @@
     // Start 15-Minute Countdown Timer
     startCountdown(payload.expiresAt);
 
-    // Draw route polyline on Leaflet map
+    // Draw route polyline and start navigation simulation on Leaflet map
     if (map && payload.pickupLat && payload.pickupLon && payload.hospitalLat && payload.hospitalLon) {
       if (routeLine) map.removeLayer(routeLine);
+      if (navMarker) map.removeLayer(navMarker);
+      if (simulatedNavInterval) clearInterval(simulatedNavInterval);
+
       routeLine = L.polyline([
         [payload.pickupLat, payload.pickupLon],
         [payload.hospitalLat, payload.hospitalLon]
       ], { color: '#38bdf8', weight: 4, dashArray: '6, 8' }).addTo(map);
-      map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+
+      // Create glowing vehicle navigation marker
+      navMarker = L.circleMarker([payload.pickupLat, payload.pickupLon], {
+        radius: 9,
+        fillColor: '#0284c7',
+        color: '#ffffff',
+        weight: 3,
+        fillOpacity: 1
+      }).addTo(map);
+
+      navMarker.bindPopup(`<strong>🚑 ${payload.actorId}</strong><br>Navigating to ${payload.hospitalName}`);
+      map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+
+      // Simulated real-time turn-by-turn navigation progression
+      let navProgress = 0;
+      const totalSteps = 40;
+      simulatedNavInterval = setInterval(() => {
+        if (navProgress < totalSteps) {
+          navProgress++;
+          const fraction = navProgress / totalSteps;
+          const curLat = payload.pickupLat + fraction * (payload.hospitalLat - payload.pickupLat);
+          const curLon = payload.pickupLon + fraction * (payload.hospitalLon - payload.pickupLon);
+          navMarker.setLatLng([curLat, curLon]);
+
+          const remDist = Math.max(0, payload.distanceMeters * (1 - fraction));
+          const remSec = Math.max(0, Math.round(payload.estimatedArrivalSec * (1 - fraction)));
+          const m = Math.floor(remSec / 60);
+          const s = remSec % 60;
+          document.getElementById('dispDistance').innerText = `${(remDist / 1000).toFixed(1)} km`;
+          document.getElementById('dispEta').innerText = `${m}m ${s.toString().padStart(2, '0')}s`;
+        } else {
+          clearInterval(simulatedNavInterval);
+          document.getElementById('dispDistance').innerText = '0.0 km';
+          document.getElementById('dispEta').innerText = 'ARRIVED AT ER';
+        }
+      }, 1000);
     }
 
     loadDispatchesTable();
+    scanNearbyHospitals();
   }
 
   function startCountdown(expiresAt) {
@@ -1031,12 +1152,17 @@
   function clearDispatchResult() {
     currentActiveDispatch = null;
     if (countdownTimerId) clearInterval(countdownTimerId);
+    if (simulatedNavInterval) clearInterval(simulatedNavInterval);
     document.getElementById('countdownBadge').style.display = 'none';
     document.getElementById('noDispatchBox').style.display = 'block';
     document.getElementById('activeDispatchCard').style.display = 'none';
     if (routeLine && map) {
       map.removeLayer(routeLine);
       routeLine = null;
+    }
+    if (navMarker && map) {
+      map.removeLayer(navMarker);
+      navMarker = null;
     }
   }
 
@@ -1170,6 +1296,7 @@
     initWs();
     refreshData();
     loadDispatchesTable();
+    scanNearbyHospitals();
     setInterval(refreshData, 4000);
   };
 </script>

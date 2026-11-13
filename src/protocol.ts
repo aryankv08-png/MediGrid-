@@ -30,6 +30,7 @@ export const RequestBedPayloadSchema = z.object({
   lon: z.number(),
   bedType: z.enum(['ICU', 'VENTILATOR', 'GENERAL', 'PEDIATRIC']).default('ICU'),
   priority: z.enum(['CRITICAL', 'ROUTINE']).default('ROUTINE'),
+  hospitalId: z.string().optional(),
 });
 
 // Transfer Workflow Payloads (Section 3.A & 3.B)

@@ -331,6 +331,61 @@
     }
     .dispatch-stat-val { font-size: 16px; font-weight: 800; color: #fff; }
     .dispatch-stat-label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+
+    /* Audit Summary Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(5px);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal-box {
+      background: #0b1220;
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 680px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+      padding: 24px;
+      position: relative;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px 8px;
+    }
+    .modal-close-btn:hover { color: #fff; }
+    .clickable-row {
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .clickable-row:hover {
+      background: rgba(2, 132, 199, 0.15) !important;
+    }
   </style>
 </head>
 <body>
@@ -524,6 +579,20 @@
         <div style="font-size: 12px; margin-top: 6px;">Select an ambulance and click "CRITICAL Bed Request" to locate, lock, and reserve the nearest suitable bed in under 100ms.</div>
       </div>
 
+      <!-- REJECTED DISPATCH CARD -->
+      <div id="rejectedDispatchCard" class="dispatch-result-box" style="display: none; border-color: var(--danger); box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);">
+        <div class="dispatch-title">
+          <span style="color: var(--danger);">❌ BOOKING REJECTED / NO BEDS</span>
+          <span class="badge" style="background: var(--danger); color: #fff;">REJECTED</span>
+        </div>
+        <div style="margin-bottom: 10px;">
+          <strong id="rejHospName" style="font-size: 16px; color: #fff;">Hospital Name</strong>
+          <div id="rejReason" style="font-size: 12px; color: #fca5a5; margin-top: 4px; font-weight: 600;">Rejection Reason</div>
+        </div>
+        <div id="rejBedsSummary" style="background: #070a12; border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin: 10px 0; font-size: 12px; color: #fff;"></div>
+        <button class="btn btn-outline" onclick="clearDispatchResult()">Dismiss</button>
+      </div>
+
       <div id="activeDispatchCard" class="dispatch-result-box active" style="display: none;">
         <div class="dispatch-title">
           <span style="color: var(--success);">✅ BED RESERVED & DISPATCH ASSIGNED</span>
@@ -554,9 +623,31 @@
           </div>
         </div>
 
-        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 14px;">
+        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
           Bed ID: <span id="dispBedId" style="font-family: monospace; color: var(--accent-bright);">--</span> | 
           Status: <span style="color: var(--warning); font-weight: bold;">RESERVED (15m Auto-Release Lock)</span>
+        </div>
+
+        <!-- BEFORE VS AFTER BED INVENTORY WIDGET -->
+        <div style="background: #070a12; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 11px; font-weight: 800; color: var(--accent-bright); text-transform: uppercase;">
+              📊 Hospital Beds Snapshot (Before vs After Booking)
+            </span>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success);">
+              -1 Bed Allocated
+            </span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 8px 10px;">
+              <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 4px;">BEFORE BOOKING</div>
+              <div style="font-size: 11px; color: #fff; line-height: 1.5;" id="dispBedsBeforeSummary">--</div>
+            </div>
+            <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; padding: 8px 10px;">
+              <div style="font-size: 10px; color: var(--success); font-weight: 700; margin-bottom: 4px;">AFTER BOOKING</div>
+              <div style="font-size: 11px; color: #fff; line-height: 1.5;" id="dispBedsAfterSummary">--</div>
+            </div>
+          </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -578,7 +669,7 @@
       <div>
         <div class="card-title">Live Database Audit: All Incoming Emergency Requests & Dispatches (MySQL)</div>
         <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-          Persisted directly in MySQL with exact request arrival timestamps and latency logs
+          Persisted directly in MySQL with exact request arrival timestamps, decisions, and before/after bed snapshots. Click any row for full audit summary.
         </div>
       </div>
       <button class="btn btn-outline" style="width: auto; padding: 6px 14px; font-size: 11px;" onclick="loadDispatchesTable()">↻ Refresh Database Records</button>
@@ -591,10 +682,10 @@
             <th>Ambulance Fleet ID</th>
             <th>Assigned Hospital Facility</th>
             <th>Required Ward</th>
+            <th>Decision & Status</th>
             <th>Road Distance</th>
             <th>Transit Time (ETA)</th>
-            <th>Search Latency</th>
-            <th>Status</th>
+            <th>Audit & Beds</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -727,6 +818,93 @@
   </div>
 </div>
 
+<!-- BOOKING AUDIT SUMMARY MODAL -->
+<div id="bookingSummaryModal" class="modal-overlay" onclick="onModalBackdropClick(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 style="margin: 0; font-size: 18px; color: #fff;">📋 Booking & Bed Allocation Audit Summary</h3>
+          <span id="modalDecisionBadge" class="badge">APPROVED</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+          Request Trace ID: <span id="modalRequestId" style="font-family: monospace; color: var(--accent-bright);">--</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" onclick="closeRequestModal()">&times;</button>
+    </div>
+
+    <!-- REJECTION ALERT (IF REJECTED) -->
+    <div id="modalRejectionAlert" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+      <div style="font-weight: 800; color: #f87171; font-size: 13px; margin-bottom: 2px;">⚠️ REQUEST REJECTED / NO BED ALLOCATED</div>
+      <div id="modalRejectionReason" style="font-size: 12px; color: #fca5a5;">--</div>
+    </div>
+
+    <!-- CORE METRICS GRID -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+      <div style="background: #070a12; border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+        <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Request Received Time (MySQL)</div>
+        <div id="modalTime" style="font-size: 13px; font-weight: 800; color: #fff; margin-top: 2px;">--</div>
+      </div>
+      <div style="background: #070a12; border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+        <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ambulance Unit Fleet</div>
+        <div id="modalAmbulance" style="font-size: 13px; font-weight: 800; color: var(--accent-bright); margin-top: 2px;">--</div>
+      </div>
+      <div style="background: #070a12; border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+        <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Target / Assigned Hospital</div>
+        <div id="modalHospital" style="font-size: 13px; font-weight: 800; color: #fff; margin-top: 2px;">--</div>
+        <div id="modalAddress" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">--</div>
+      </div>
+      <div style="background: #070a12; border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+        <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Assigned Bed & Ward</div>
+        <div id="modalBed" style="font-size: 13px; font-weight: 800; color: var(--warning); margin-top: 2px;">--</div>
+        <div id="modalBedType" style="font-size: 11px; color: var(--accent-bright); margin-top: 2px;">--</div>
+      </div>
+    </div>
+
+    <!-- ROAD ROUTING & LATENCY -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+      <div style="background: #070a12; border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center;">
+        <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Road Distance</div>
+        <div id="modalDistance" style="font-size: 15px; font-weight: 800; color: #fff; margin-top: 2px;">-- km</div>
+      </div>
+      <div style="background: #070a12; border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center;">
+        <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Estimated Transit (ETA)</div>
+        <div id="modalEta" style="font-size: 15px; font-weight: 800; color: #fff; margin-top: 2px;">-- min</div>
+      </div>
+      <div style="background: #070a12; border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center;">
+        <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Search Latency</div>
+        <div id="modalLatency" style="font-size: 15px; font-weight: 800; color: var(--success); margin-top: 2px;">-- ms</div>
+      </div>
+    </div>
+
+    <!-- BEFORE VS AFTER BED AUDIT COMPARISON -->
+    <div style="background: #070a12; border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+      <div style="font-size: 12px; font-weight: 800; color: var(--accent-bright); text-transform: uppercase; margin-bottom: 8px;">
+        🏥 Hospital Beds Snapshot at Request Time (Before vs After)
+      </div>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; font-size: 12px; text-align: left; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 11px;">
+              <th style="padding: 6px;">Ward Department</th>
+              <th style="padding: 6px;">Before Booking</th>
+              <th style="padding: 6px;">After Booking</th>
+              <th style="padding: 6px;">Delta / Allocation</th>
+            </tr>
+          </thead>
+          <tbody id="modalBedAuditTbody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end;">
+      <button class="btn btn-outline" style="width: auto; padding: 8px 20px;" onclick="closeRequestModal()">Close Summary</button>
+    </div>
+  </div>
+</div>
+
 <!-- LEAFLET MAP SCRIPT & CONTROLS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -738,6 +916,7 @@
   let navMarker = null;
   let simulatedNavInterval = null;
   let allHospitals = [];
+  let allEmergencyRequests = [];
   let currentIncomingTransfer = null;
   let currentActiveDispatch = null;
   let countdownTimerId = null;
@@ -772,7 +951,7 @@
     await scanNearbyHospitals();
     const autoBook = document.getElementById('autoBookToggle').checked;
     if (autoBook) {
-      log(`⚡ Auto-selecting nearest hospital & booking for ${sel.value}...`);
+      log(`⚡ Auto-selecting nearest hospital with available beds for ${sel.value}...`);
       requestBed('CRITICAL');
     }
   }
@@ -801,32 +980,36 @@
 
       let foundBest = false;
       radarDiv.innerHTML = nearby.map(h => {
-        const isMatch = !foundBest && h.hasFacility;
+        const hasBeds = h.hasFacility && Number(h.freeBedsForType) > 0;
+        const isMatch = !foundBest && hasBeds;
         if (isMatch) foundBest = true;
 
         const distanceKm = (h.distanceMeters / 1000).toFixed(1);
         const etaMin = Math.round(h.durationSeconds / 60);
 
         return `
-          <div style="background: ${isMatch ? 'rgba(2, 132, 199, 0.15)' : '#070b13'}; border: 1px solid ${isMatch ? 'var(--accent)' : 'var(--border)'}; border-radius: 6px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="background: ${isMatch ? 'rgba(2, 132, 199, 0.15)' : '#070b13'}; border: 1px solid ${isMatch ? 'var(--accent)' : hasBeds ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}; border-radius: 6px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div style="flex: 1; padding-right: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <strong style="color: #fff; font-size: 13px;">${h.name}</strong>
                 ${isMatch ? '<span class="badge" style="background: var(--accent); color: #fff;">🎯 AUTO-TARGET MATCH</span>' : ''}
+                ${hasBeds 
+                  ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success);">🟢 AVAILABLE: ${h.freeBedsForType} Free ${bedType}s</span>`
+                  : `<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger);">🔴 FULL / NO BEDS (0 Free)</span>`
+                }
               </div>
               <div style="font-size: 11px; color: var(--accent-bright); margin-top: 2px;">
-                📍 <strong>${distanceKm} km</strong> distance • ⏱️ <strong>~${etaMin} min travel time</strong>
+                📍 <strong>${distanceKm} km</strong> road distance • ⏱️ <strong>~${etaMin} min travel time</strong>
               </div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">
-                ${h.address}
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                Bed Breakdown: <strong>ICU: ${h.freeICU}</strong> | <strong>Vent: ${h.freeVentilator}</strong> | <strong>Gen: ${h.freeGeneral}</strong> (Total Free: ${h.totalFree || '--'})
               </div>
             </div>
-            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
-              ${h.hasFacility 
-                ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success);">✓ ${h.freeBedsForType} Free ${bedType}s</span>`
-                : `<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger);">✕ 0 Free</span>`
+            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 130px;">
+              ${hasBeds 
+                ? `<button class="btn btn-primary" style="width: auto; padding: 5px 12px; font-size: 11px;" onclick="requestBedWithHospital('CRITICAL', '${h.id}')">Book & Navigate &rarr;</button>`
+                : `<button class="btn btn-danger" style="width: auto; padding: 5px 12px; font-size: 11px; opacity: 0.85;" onclick="requestBedWithHospital('CRITICAL', '${h.id}')">Test Reject (0 Beds)</button>`
               }
-              ${h.hasFacility ? `<button class="btn btn-primary" style="width: auto; padding: 4px 10px; font-size: 11px;" onclick="requestBed('CRITICAL')">Book & Navigate &rarr;</button>` : ''}
             </div>
           </div>
         `;
@@ -859,6 +1042,8 @@
         document.getElementById('nodeTag').innerText = msg.instanceId || 'active-node';
       } else if (msg.type === 'bedAssignment') {
         showDispatchResult(msg.payload);
+      } else if (msg.type === 'bookingRejected' || msg.type === 'noBedAvailable') {
+        showRejectionResult(msg);
       } else if (msg.type === 'bedReservedFanout') {
         if (msg.payload && (!currentActiveDispatch || currentActiveDispatch.bedId === msg.payload.bedId)) {
           showDispatchResult(msg.payload);
@@ -1066,9 +1251,26 @@
     log(`&rarr; Ambulance requested ${priority} ${bedType} bed at (${lat}, ${lon})`);
   }
 
+  function requestBedWithHospital(priority, hospitalId) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return alert('WebSocket offline');
+    const actorId = document.getElementById('ambSelect').value;
+    const bedType = document.getElementById('ambWard').value;
+    const lat = parseFloat(document.getElementById('ambLat').value);
+    const lon = parseFloat(document.getElementById('ambLon').value);
+
+    socket.send(JSON.stringify({
+      type: 'requestBed',
+      actorId,
+      payload: { lat, lon, bedType, priority, hospitalId }
+    }));
+    log(`&rarr; Ambulance requested ${priority} ${bedType} at hospital ${hospitalId}`);
+  }
+
   function showDispatchResult(payload) {
     currentActiveDispatch = payload;
     document.getElementById('noDispatchBox').style.display = 'none';
+    const rejBox = document.getElementById('rejectedDispatchCard');
+    if (rejBox) rejBox.style.display = 'none';
     document.getElementById('activeDispatchCard').style.display = 'block';
 
     document.getElementById('dispHospName').innerText = payload.hospitalName;
@@ -1082,6 +1284,22 @@
     document.getElementById('dispLatency').innerText = `${payload.latencyMs} ms`;
     document.getElementById('dispBedId').innerText = payload.bedId;
     document.getElementById('dispPriorityBadge').innerText = payload.priority;
+
+    // Render Before vs After Bed Inventory Snapshot
+    if (payload.bedsBefore && payload.bedsAfter) {
+      const bType = payload.bedType;
+      const bBeforeCount = payload.bedsBefore['free' + bType] ?? payload.bedsBefore.freeICU;
+      const bAfterCount = payload.bedsAfter['free' + bType] ?? payload.bedsAfter.freeICU;
+
+      document.getElementById('dispBedsBeforeSummary').innerHTML = `
+        <span style="color: var(--accent-bright); font-weight: 700;">${bType}:</span> <strong>${bBeforeCount} Available</strong><br>
+        <span style="font-size: 10px; color: var(--text-muted);">ICU: ${payload.bedsBefore.freeICU} | Vent: ${payload.bedsBefore.freeVentilator} | Gen: ${payload.bedsBefore.freeGeneral} | Total: ${payload.bedsBefore.totalFree}</span>
+      `;
+      document.getElementById('dispBedsAfterSummary').innerHTML = `
+        <span style="color: var(--success); font-weight: 700;">${bType}:</span> <strong>${bAfterCount} Available</strong> <span style="color: var(--warning); font-size: 10px; font-weight: bold;">(-1 Reserved)</span><br>
+        <span style="font-size: 10px; color: var(--text-muted);">ICU: ${payload.bedsAfter.freeICU} | Vent: ${payload.bedsAfter.freeVentilator} | Gen: ${payload.bedsAfter.freeGeneral} | Total: ${payload.bedsAfter.totalFree}</span>
+      `;
+    }
 
     // Start 15-Minute Countdown Timer
     startCountdown(payload.expiresAt);
@@ -1138,6 +1356,30 @@
     scanNearbyHospitals();
   }
 
+  function showRejectionResult(data) {
+    if (countdownTimerId) clearInterval(countdownTimerId);
+    if (simulatedNavInterval) clearInterval(simulatedNavInterval);
+    document.getElementById('noDispatchBox').style.display = 'none';
+    document.getElementById('activeDispatchCard').style.display = 'none';
+    const rejCard = document.getElementById('rejectedDispatchCard');
+    if (rejCard) {
+      rejCard.style.display = 'block';
+      document.getElementById('rejHospName').innerText = data.hospitalName || 'Metropolitan City Network';
+      document.getElementById('rejReason').innerText = data.reason || 'All beds for requested department occupied at this moment.';
+
+      const beds = data.bedsBefore;
+      if (beds) {
+        document.getElementById('rejBedsSummary').innerHTML = `
+          <strong style="color: var(--accent-bright);">Bed Inventory at Request Time:</strong><br>
+          ICU: <strong>${beds.freeICU}</strong> Free | Ventilator: <strong>${beds.freeVentilator}</strong> Free | General: <strong>${beds.freeGeneral}</strong> Free (Total Available: ${beds.totalFree})
+        `;
+      } else {
+        document.getElementById('rejBedsSummary').innerHTML = 'Zero matching beds available across the Hyderabad regional network.';
+      }
+    }
+    loadDispatchesTable();
+  }
+
   function startCountdown(expiresAt) {
     if (countdownTimerId) clearInterval(countdownTimerId);
     const countdownEl = document.getElementById('countdownBadge');
@@ -1166,6 +1408,9 @@
     document.getElementById('countdownBadge').style.display = 'none';
     document.getElementById('noDispatchBox').style.display = 'block';
     document.getElementById('activeDispatchCard').style.display = 'none';
+    const rejBox = document.getElementById('rejectedDispatchCard');
+    if (rejBox) rejBox.style.display = 'none';
+
     if (routeLine && map) {
       map.removeLayer(routeLine);
       routeLine = null;
@@ -1202,35 +1447,136 @@
     try {
       const res = await fetch('/api/requests');
       const requests = await res.json();
+      allEmergencyRequests = requests || [];
       const tbody = document.querySelector('#dispatchTable tbody');
       if (tbody) {
         if (!requests || requests.length === 0) {
           tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 18px;">No emergency requests logged in database yet.</td></tr>';
           return;
         }
-        tbody.innerHTML = requests.slice(0, 25).map(r => `
-          <tr>
-            <td style="color: var(--accent-bright); font-family: monospace; font-size: 11px;">
-              <strong>${r.formatted_time || new Date(r.requested_at).toLocaleString()}</strong>
-            </td>
-            <td><strong>${r.ambulance_id}</strong></td>
-            <td><strong>${r.assigned_hospital_name || 'Matching...'}</strong></td>
-            <td><span class="badge" style="background: var(--accent); color: #fff;">${r.bed_type}</span></td>
-            <td>${(r.distance_meters / 1000).toFixed(1)} km</td>
-            <td>${Math.round(r.estimated_duration_sec / 60)} min (${r.estimated_duration_sec}s)</td>
-            <td><span style="color: var(--success); font-weight: bold;">${r.search_latency_ms} ms</span></td>
-            <td>
-              <span class="badge" style="background: ${r.status === 'ASSIGNED' ? 'var(--warning)' : r.status === 'ARRIVED' ? 'var(--success)' : 'var(--danger)'}; color: #fff;">
-                ${r.status}
-              </span>
-            </td>
-          </tr>
-        `).join('');
+        tbody.innerHTML = requests.slice(0, 30).map(r => {
+          const isApproved = r.decision === 'APPROVED' || r.status === 'ASSIGNED' || r.status === 'ARRIVED';
+          const decisionBadge = isApproved 
+            ? '<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success);">APPROVED</span>'
+            : '<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger);">REJECTED</span>';
+          
+          const statusBadge = `
+            <span class="badge" style="background: ${r.status === 'ASSIGNED' ? 'var(--warning)' : r.status === 'ARRIVED' ? 'var(--success)' : 'var(--danger)'}; color: #fff;">
+              ${r.status}
+            </span>
+          `;
+
+          const distanceStr = r.distance_meters ? `${(r.distance_meters / 1000).toFixed(1)} km` : '--';
+          const etaStr = r.estimated_duration_sec ? `${Math.round(r.estimated_duration_sec / 60)} min` : '--';
+
+          return `
+            <tr class="clickable-row" onclick="openRequestModal('${r.request_id}')">
+              <td style="color: var(--accent-bright); font-family: monospace; font-size: 11px;">
+                <strong>${r.formatted_time || new Date(r.requested_at).toLocaleString()}</strong>
+              </td>
+              <td><strong>${r.ambulance_id}</strong></td>
+              <td><strong>${r.assigned_hospital_name || 'Matching Network'}</strong></td>
+              <td><span class="badge" style="background: var(--accent); color: #fff;">${r.bed_type}</span></td>
+              <td>${decisionBadge} ${statusBadge}</td>
+              <td>${distanceStr}</td>
+              <td>${etaStr}</td>
+              <td>
+                <button class="btn btn-outline" style="width: auto; padding: 4px 10px; font-size: 11px;" onclick="event.stopPropagation(); openRequestModal('${r.request_id}')">
+                  🔍 View Summary
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
       }
     } catch (e) {
       console.error('Error loading requests table:', e);
     }
   }
+
+  function openRequestModal(requestId) {
+    const r = allEmergencyRequests.find(x => x.request_id === requestId);
+    if (!r) return;
+
+    const isApproved = r.decision === 'APPROVED' || r.status === 'ASSIGNED' || r.status === 'ARRIVED';
+    const badgeEl = document.getElementById('modalDecisionBadge');
+    badgeEl.innerText = isApproved ? 'APPROVED' : 'REJECTED';
+    badgeEl.style.background = isApproved ? 'var(--success)' : 'var(--danger)';
+    badgeEl.style.color = '#fff';
+
+    document.getElementById('modalRequestId').innerText = r.request_id;
+    document.getElementById('modalTime').innerText = r.formatted_time || new Date(r.requested_at).toLocaleString();
+    document.getElementById('modalAmbulance').innerText = r.ambulance_id;
+    document.getElementById('modalHospital').innerText = r.assigned_hospital_name || 'Metropolitan City Network';
+    document.getElementById('modalAddress').innerText = `Pickup GPS: (${r.pickup_lat.toFixed(4)}, ${r.pickup_lon.toFixed(4)})`;
+    document.getElementById('modalBed').innerText = r.assigned_bed_id ? `Bed #${r.assigned_bed_id.slice(0, 8)}` : 'None (No bed allocated)';
+    document.getElementById('modalBedType').innerText = `${r.bed_type} Ward (${r.priority || 'CRITICAL'})`;
+    document.getElementById('modalDistance').innerText = r.distance_meters ? `${(r.distance_meters / 1000).toFixed(1)} km` : '--';
+    document.getElementById('modalEta').innerText = r.estimated_duration_sec ? `${Math.round(r.estimated_duration_sec / 60)} min (${r.estimated_duration_sec}s)` : '--';
+    document.getElementById('modalLatency').innerText = `${r.search_latency_ms || 18} ms`;
+
+    const rejAlert = document.getElementById('modalRejectionAlert');
+    if (!isApproved || r.rejection_reason) {
+      rejAlert.style.display = 'block';
+      document.getElementById('modalRejectionReason').innerText = r.rejection_reason || 'Department capacity exhausted at request time';
+    } else {
+      rejAlert.style.display = 'none';
+    }
+
+    // Populate Before vs After bed inventory
+    const tbody = document.getElementById('modalBedAuditTbody');
+    const before = r.beds_before || {};
+    const after = r.beds_after || before;
+
+    const wards = [
+      { key: 'freeICU', label: 'ICU (Intensive Care Unit)', type: 'ICU' },
+      { key: 'freeVentilator', label: 'Ventilator Assisted Unit', type: 'VENTILATOR' },
+      { key: 'freeGeneral', label: 'General Emergency Ward', type: 'GENERAL' },
+      { key: 'freePediatric', label: 'Pediatric Care Ward', type: 'PEDIATRIC' },
+      { key: 'totalFree', label: 'Total Available Beds (All Wards)', type: 'TOTAL' }
+    ];
+
+    tbody.innerHTML = wards.map(w => {
+      const bCount = before[w.key] !== undefined ? before[w.key] : '--';
+      const aCount = after[w.key] !== undefined ? after[w.key] : '--';
+      const isTarget = r.bed_type === w.type;
+      let deltaBadge = '<span style="color: var(--text-muted); font-size: 11px;">0 (Unchanged)</span>';
+
+      if (isApproved && (isTarget || w.key === 'totalFree') && bCount !== '--' && aCount !== '--') {
+        deltaBadge = '<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success);">-1 Bed Allocated</span>';
+      } else if (!isApproved && isTarget) {
+        deltaBadge = '<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger);">0 (Allocation Rejected)</span>';
+      }
+
+      return `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04); ${isTarget ? 'background: rgba(2, 132, 199, 0.08);' : ''}">
+          <td style="padding: 8px 6px;">
+            <strong style="color: ${isTarget ? 'var(--accent-bright)' : '#fff'};">${w.label}</strong>
+            ${isTarget ? '<span class="badge" style="background: var(--accent); color: #fff; margin-left: 6px;">REQUESTED</span>' : ''}
+          </td>
+          <td style="padding: 8px 6px; font-weight: bold; color: var(--text-muted);">${bCount} Available</td>
+          <td style="padding: 8px 6px; font-weight: bold; color: ${isApproved && isTarget ? 'var(--success)' : '#fff'};">${aCount} Available</td>
+          <td style="padding: 8px 6px;">${deltaBadge}</td>
+        </tr>
+      `;
+    }).join('');
+
+    document.getElementById('bookingSummaryModal').classList.add('open');
+  }
+
+  function closeRequestModal() {
+    document.getElementById('bookingSummaryModal').classList.remove('open');
+  }
+
+  function onModalBackdropClick(e) {
+    if (e.target.id === 'bookingSummaryModal') {
+      closeRequestModal();
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeRequestModal();
+  });
 
   function transmitGps() {
     if (!socket || socket.readyState !== WebSocket.OPEN) return alert('WebSocket offline');

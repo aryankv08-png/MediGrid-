@@ -133,6 +133,10 @@ async function initSchema(p: Pool) {
       estimated_duration_sec INT DEFAULT 0,
       search_latency_ms INT DEFAULT 0,
       status ENUM('PENDING', 'ASSIGNED', 'ARRIVED', 'CANCELLED', 'NO_BED') DEFAULT 'ASSIGNED',
+      decision ENUM('APPROVED', 'REJECTED') DEFAULT 'APPROVED',
+      rejection_reason VARCHAR(255) NULL,
+      beds_before JSON NULL,
+      beds_after JSON NULL,
       requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_amb_req (ambulance_id, requested_at)
     );

@@ -267,62 +267,174 @@ wss.on('connection', (ws) => {
       }
 
       // ------------------------------------------------------------------
-      // AMBULANCE BED SEARCH (Road Routing + Atomic Locking)
+      // AMBULANCE BED SEARCH (Road Routing + Atomic Locking + Before/After Snapshots)
       // ------------------------------------------------------------------
       case 'requestBed': {
         const validated = RequestBedPayloadSchema.safeParse(payload);
         if (!validated.success) return;
 
-        const { lat, lon } = validated.data;
+        const { lat, lon, hospitalId: explicitHospitalId } = validated.data;
         const requestedType = payload?.bedType || 'ICU';
         const priority = payload?.priority === 'CRITICAL' ? 10 : 0;
         const startTime = Date.now();
 
-        // 1. High-speed indexed MySQL query for hospitals with requested free bed type
-        const [hospitalsWithBeds]: any = await pool.query(`
-          SELECT h.id, h.name, h.lat, h.lon, h.address, h.phone, COUNT(b.id) as freeBeds
-          FROM hospitals h
-          JOIN beds b ON h.id = b.hospital_id
-          WHERE b.status = 'FREE' AND b.bed_type = ?
-          GROUP BY h.id, h.name, h.lat, h.lon, h.address, h.phone
-          HAVING freeBeds > 0
-        `, [requestedType]);
+        let bestCandidate: any = null;
+        let roadDistance = 1500;
+        let roadDuration = 180;
 
-        if (!hospitalsWithBeds || hospitalsWithBeds.length === 0) {
-          ws.send(JSON.stringify({ type: 'noBedAvailable', actorId, requestedType }));
-          return;
-        }
+        // If an explicit hospital was requested (e.g. clicked from radar)
+        if (explicitHospitalId) {
+          const [hospRows]: any = await pool.query(
+            'SELECT id, name, lat, lon, address, phone FROM hospitals WHERE id = ?',
+            [explicitHospitalId]
+          );
+          if (hospRows.length > 0) {
+            const h = hospRows[0];
+            // Check snapshot of beds for this hospital
+            const [bedsBeforeRows]: any = await pool.query(`
+              SELECT 
+                COUNT(id) as totalBeds,
+                SUM(CASE WHEN status = 'FREE' THEN 1 ELSE 0 END) as totalFree,
+                SUM(CASE WHEN status = 'FREE' AND bed_type = 'ICU' THEN 1 ELSE 0 END) as freeICU,
+                SUM(CASE WHEN status = 'FREE' AND bed_type = 'VENTILATOR' THEN 1 ELSE 0 END) as freeVentilator,
+                SUM(CASE WHEN status = 'FREE' AND bed_type = 'GENERAL' THEN 1 ELSE 0 END) as freeGeneral,
+                SUM(CASE WHEN status = 'FREE' AND bed_type = 'PEDIATRIC' THEN 1 ELSE 0 END) as freePediatric
+              FROM beds
+              WHERE hospital_id = ?
+            `, [h.id]);
 
-        // 2. Straight-line pre-filter
-        const sorted = hospitalsWithBeds.map((h: any) => ({
-          ...h,
-          straightDist: haversineDistance(lat, lon, h.lat, h.lon),
-        })).sort((a: any, b: any) => a.straightDist - b.straightDist);
+            const bBefore = bedsBeforeRows[0] || {};
+            const bedsBefore = {
+              totalBeds: Number(bBefore.totalBeds || 0),
+              totalFree: Number(bBefore.totalFree || 0),
+              freeICU: Number(bBefore.freeICU || 0),
+              freeVentilator: Number(bBefore.freeVentilator || 0),
+              freeGeneral: Number(bBefore.freeGeneral || 0),
+              freePediatric: Number(bBefore.freePediatric || 0),
+            };
 
-        const candidates = sorted.slice(0, 3);
-        let bestCandidate = candidates[0];
-        let roadDistance = bestCandidate.straightDist * 1.28;
-        let roadDuration = Math.round(roadDistance / 11.11);
+            const freeForType = requestedType === 'ICU' ? bedsBefore.freeICU :
+                                requestedType === 'VENTILATOR' ? bedsBefore.freeVentilator :
+                                requestedType === 'GENERAL' ? bedsBefore.freeGeneral : bedsBefore.freePediatric;
 
-        // Parallel routing check across candidates with quick turnaround
-        const routeResults = await Promise.all(
-          candidates.map(async (candidate: any) => {
-            const route = await calculateRoadDistance(lat, lon, candidate.lat, candidate.lon);
-            return { candidate, route };
-          })
-        );
+            // If hospital has NO BEDS for requested type, REJECT immediately and record snapshot
+            if (freeForType <= 0) {
+              const reqId = randomUUID();
+              const rejectionReason = `${h.name} has 0 available ${requestedType} beds (Total Free: ${bedsBefore.totalFree})`;
+              
+              await pool.query(`
+                INSERT INTO emergency_requests
+                  (request_id, ambulance_id, pickup_lat, pickup_lon, bed_type, priority, assigned_hospital_id, assigned_hospital_name, status, decision, rejection_reason, beds_before, beds_after)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'NO_BED', 'REJECTED', ?, ?, ?)
+              `, [
+                reqId, actorId, lat, lon, requestedType, payload?.priority || 'CRITICAL',
+                h.id, h.name, rejectionReason, JSON.stringify(bedsBefore), JSON.stringify(bedsBefore)
+              ]);
 
-        let minDuration = Infinity;
-        for (const res of routeResults) {
-          if (res.route && res.route.durationSeconds < minDuration) {
-            minDuration = res.route.durationSeconds;
-            roadDuration = res.route.durationSeconds;
-            roadDistance = res.route.distanceMeters;
-            bestCandidate = res.candidate;
+              ws.send(JSON.stringify({
+                type: 'bookingRejected',
+                actorId,
+                hospitalId: h.id,
+                hospitalName: h.name,
+                requestedType,
+                decision: 'REJECTED',
+                reason: rejectionReason,
+                bedsBefore,
+                bedsAfter: bedsBefore,
+              }));
+              return;
+            }
+
+            bestCandidate = h;
+            const route = await calculateRoadDistance(lat, lon, h.lat, h.lon);
+            roadDistance = route?.distanceMeters || Math.round(haversineDistance(lat, lon, h.lat, h.lon) * 1.35);
+            roadDuration = route?.durationSeconds || Math.round(roadDistance / 8.33);
           }
         }
 
-        // 3. Guaranteed Zero-Double Allocation: Atomic Redis Lock + Optimistic Versioning
+        // Auto-select nearest hospital with verified available beds
+        if (!bestCandidate) {
+          const [hospitalsWithBeds]: any = await pool.query(`
+            SELECT h.id, h.name, h.lat, h.lon, h.address, h.phone, COUNT(b.id) as freeBeds
+            FROM hospitals h
+            JOIN beds b ON h.id = b.hospital_id
+            WHERE b.status = 'FREE' AND b.bed_type = ?
+            GROUP BY h.id, h.name, h.lat, h.lon, h.address, h.phone
+            HAVING freeBeds > 0
+          `, [requestedType]);
+
+          if (!hospitalsWithBeds || hospitalsWithBeds.length === 0) {
+            const reqId = randomUUID();
+            const rejectionReason = `Metropolitan emergency network has 0 available ${requestedType} beds`;
+
+            await pool.query(`
+              INSERT INTO emergency_requests
+                (request_id, ambulance_id, pickup_lat, pickup_lon, bed_type, priority, status, decision, rejection_reason)
+              VALUES (?, ?, ?, ?, ?, ?, 'NO_BED', 'REJECTED', ?)
+            `, [reqId, actorId, lat, lon, requestedType, payload?.priority || 'CRITICAL', rejectionReason]);
+
+            ws.send(JSON.stringify({
+              type: 'noBedAvailable',
+              actorId,
+              requestedType,
+              decision: 'REJECTED',
+              reason: rejectionReason,
+            }));
+            return;
+          }
+
+          const sorted = hospitalsWithBeds.map((h: any) => ({
+            ...h,
+            straightDist: haversineDistance(lat, lon, h.lat, h.lon),
+          })).sort((a: any, b: any) => a.straightDist - b.straightDist);
+
+          const candidates = sorted.slice(0, 3);
+          bestCandidate = candidates[0];
+          roadDistance = bestCandidate.straightDist * 1.35;
+          roadDuration = Math.round(roadDistance / 8.33);
+
+          const routeResults = await Promise.all(
+            candidates.map(async (candidate: any) => {
+              const route = await calculateRoadDistance(lat, lon, candidate.lat, candidate.lon);
+              return { candidate, route };
+            })
+          );
+
+          let minDuration = Infinity;
+          for (const res of routeResults) {
+            if (res.route && res.route.durationSeconds < minDuration) {
+              minDuration = res.route.durationSeconds;
+              roadDuration = res.route.durationSeconds;
+              roadDistance = res.route.distanceMeters;
+              bestCandidate = res.candidate;
+            }
+          }
+        }
+
+        // Snapshot hospital beds BEFORE booking
+        const [bedsBeforeRows]: any = await pool.query(`
+          SELECT 
+            COUNT(id) as totalBeds,
+            SUM(CASE WHEN status = 'FREE' THEN 1 ELSE 0 END) as totalFree,
+            SUM(CASE WHEN status = 'FREE' AND bed_type = 'ICU' THEN 1 ELSE 0 END) as freeICU,
+            SUM(CASE WHEN status = 'FREE' AND bed_type = 'VENTILATOR' THEN 1 ELSE 0 END) as freeVentilator,
+            SUM(CASE WHEN status = 'FREE' AND bed_type = 'GENERAL' THEN 1 ELSE 0 END) as freeGeneral,
+            SUM(CASE WHEN status = 'FREE' AND bed_type = 'PEDIATRIC' THEN 1 ELSE 0 END) as freePediatric
+          FROM beds
+          WHERE hospital_id = ?
+        `, [bestCandidate.id]);
+
+        const bBefore = bedsBeforeRows[0] || {};
+        const bedsBefore = {
+          totalBeds: Number(bBefore.totalBeds || 0),
+          totalFree: Number(bBefore.totalFree || 0),
+          freeICU: Number(bBefore.freeICU || 0),
+          freeVentilator: Number(bBefore.freeVentilator || 0),
+          freeGeneral: Number(bBefore.freeGeneral || 0),
+          freePediatric: Number(bBefore.freePediatric || 0),
+        };
+
+        // Guaranteed Zero-Double Allocation: Atomic Redis Lock + Optimistic Versioning
         let assignedBed: any = null;
         const lockToken = randomUUID();
 
@@ -355,7 +467,26 @@ wss.on('connection', (ws) => {
         }
 
         if (!assignedBed) {
-          ws.send(JSON.stringify({ type: 'allocationContentionRetry', actorId }));
+          const reqId = randomUUID();
+          const contentionReason = 'High contention: Bed was claimed by a concurrent request during lock acquisition';
+
+          await pool.query(`
+            INSERT INTO emergency_requests
+              (request_id, ambulance_id, pickup_lat, pickup_lon, bed_type, priority, assigned_hospital_id, assigned_hospital_name, status, decision, rejection_reason, beds_before, beds_after)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'NO_BED', 'REJECTED', ?, ?, ?)
+          `, [
+            reqId, actorId, lat, lon, requestedType, payload?.priority || 'CRITICAL',
+            bestCandidate.id, bestCandidate.name, contentionReason, JSON.stringify(bedsBefore), JSON.stringify(bedsBefore)
+          ]);
+
+          ws.send(JSON.stringify({
+            type: 'allocationContentionRetry',
+            actorId,
+            decision: 'REJECTED',
+            reason: contentionReason,
+            bedsBefore,
+            bedsAfter: bedsBefore
+          }));
           return;
         }
 
@@ -363,13 +494,23 @@ wss.on('connection', (ws) => {
         recentSearchLatencies.push(latencyMs);
         if (recentSearchLatencies.length > 100) recentSearchLatencies.shift();
 
+        // Snapshot hospital beds AFTER booking
+        const bedsAfter = {
+          totalBeds: bedsBefore.totalBeds,
+          totalFree: Math.max(0, bedsBefore.totalFree - 1),
+          freeICU: requestedType === 'ICU' ? Math.max(0, bedsBefore.freeICU - 1) : bedsBefore.freeICU,
+          freeVentilator: requestedType === 'VENTILATOR' ? Math.max(0, bedsBefore.freeVentilator - 1) : bedsBefore.freeVentilator,
+          freeGeneral: requestedType === 'GENERAL' ? Math.max(0, bedsBefore.freeGeneral - 1) : bedsBefore.freeGeneral,
+          freePediatric: requestedType === 'PEDIATRIC' ? Math.max(0, bedsBefore.freePediatric - 1) : bedsBefore.freePediatric,
+        };
+
         const requestId = randomUUID();
 
-        // 1. Audit log into emergency_requests table with exact request timestamp
+        // 1. Audit log into emergency_requests table with exact request timestamp and before/after beds
         await pool.query(`
           INSERT INTO emergency_requests
-            (request_id, ambulance_id, pickup_lat, pickup_lon, bed_type, priority, assigned_hospital_id, assigned_hospital_name, assigned_bed_id, distance_meters, estimated_duration_sec, search_latency_ms, status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ASSIGNED')
+            (request_id, ambulance_id, pickup_lat, pickup_lon, bed_type, priority, assigned_hospital_id, assigned_hospital_name, assigned_bed_id, distance_meters, estimated_duration_sec, search_latency_ms, status, decision, rejection_reason, beds_before, beds_after)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ASSIGNED', 'APPROVED', NULL, ?, ?)
         `, [
           requestId,
           actorId,
@@ -383,6 +524,8 @@ wss.on('connection', (ws) => {
           Math.round(roadDistance),
           Math.round(roadDuration),
           latencyMs,
+          JSON.stringify(bedsBefore),
+          JSON.stringify(bedsAfter),
         ]);
 
         // 2. Dispatch assignments table
@@ -400,6 +543,7 @@ wss.on('connection', (ws) => {
 
         const assignmentEvent = {
           actorId,
+          requestId,
           hospitalId: bestCandidate.id,
           hospitalName: bestCandidate.name,
           hospitalAddress: bestCandidate.address,
@@ -414,6 +558,9 @@ wss.on('connection', (ws) => {
           estimatedArrivalSec: Math.round(roadDuration),
           latencyMs,
           priority: payload?.priority || 'ROUTINE',
+          decision: 'APPROVED',
+          bedsBefore,
+          bedsAfter,
           expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         };
 
@@ -561,7 +708,8 @@ app.get('/api/hospitals/nearby', async (req: any) => {
            SUM(CASE WHEN b.status = 'FREE' AND b.bed_type = ? THEN 1 ELSE 0 END) as freeBedsForType,
            SUM(CASE WHEN b.status = 'FREE' AND b.bed_type = 'ICU' THEN 1 ELSE 0 END) as freeICU,
            SUM(CASE WHEN b.status = 'FREE' AND b.bed_type = 'VENTILATOR' THEN 1 ELSE 0 END) as freeVentilator,
-           SUM(CASE WHEN b.status = 'FREE' AND b.bed_type = 'GENERAL' THEN 1 ELSE 0 END) as freeGeneral
+           SUM(CASE WHEN b.status = 'FREE' AND b.bed_type = 'GENERAL' THEN 1 ELSE 0 END) as freeGeneral,
+           SUM(CASE WHEN b.status = 'FREE' AND b.bed_type = 'PEDIATRIC' THEN 1 ELSE 0 END) as freePediatric
     FROM hospitals h
     LEFT JOIN beds b ON h.id = b.hospital_id
     GROUP BY h.id, h.name, h.lat, h.lon, h.phone, h.address
@@ -571,27 +719,46 @@ app.get('/api/hospitals/nearby', async (req: any) => {
     const straightDist = haversineDistance(lat, lon, h.lat, h.lon);
     const roadMeters = Math.max(150, Math.round(straightDist * 1.35));
     const etaSec = Math.max(60, Math.round(roadMeters / 8.33));
-    const hasFacility = Number(h.freeBedsForType) > 0;
+    const freeForType = Number(h.freeBedsForType || 0);
+    const hasFacility = freeForType > 0;
+    const totalFree = Number(h.freeICU || 0) + Number(h.freeVentilator || 0) + Number(h.freeGeneral || 0) + Number(h.freePediatric || 0);
     return {
       ...h,
+      freeBedsForType: freeForType,
+      totalFree,
       distanceMeters: roadMeters,
       durationSeconds: etaSec,
       hasFacility,
     };
   }).sort((a: any, b: any) => a.distanceMeters - b.distanceMeters);
 
-  return nearby.slice(0, 5);
+  return nearby.slice(0, 8);
 });
 
 app.get('/api/requests', async () => {
   const pool = await getDbPool();
-  const [rows] = await pool.query(`
+  const [rows]: any = await pool.query(`
     SELECT r.*, DATE_FORMAT(r.requested_at, '%Y-%m-%d %H:%i:%s') as formatted_time
     FROM emergency_requests r
     ORDER BY r.requested_at DESC
     LIMIT 50
   `);
-  return rows;
+
+  return rows.map((r: any) => {
+    let beforeObj = null;
+    let afterObj = null;
+    try {
+      beforeObj = typeof r.beds_before === 'string' ? JSON.parse(r.beds_before) : r.beds_before;
+    } catch (e) {}
+    try {
+      afterObj = typeof r.beds_after === 'string' ? JSON.parse(r.beds_after) : r.beds_after;
+    } catch (e) {}
+    return {
+      ...r,
+      beds_before: beforeObj,
+      beds_after: afterObj,
+    };
+  });
 });
 
 app.get('/api/hospitals', async () => {

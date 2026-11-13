@@ -124,7 +124,7 @@ async function runTests() {
     assert(false, 'Priority queue test failed', err.message);
   }
 
-  // TEST 5: Redis Rate Limiter & Atomic Locking
+  // TEST 5:  Rate Limiter & Atomic Locking
   console.log('\n--- TEST 5: Redis Atomic Mutual Exclusion & Rate Limiting ---');
   try {
     const r = new Redis({ host: REDIS_HOST });

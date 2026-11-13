@@ -105,11 +105,17 @@
     <div class="brand-title">
       <span>🚑 MEDIGRID</span>
       <span class="node-tag" id="nodeTag">Connecting...</span>
+      <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Hyderabad Metro Emergency Bed Grid</span>
     </div>
   </div>
-  <div class="conn-status">
-    <div class="conn-dot" id="connDot"></div>
-    <span id="connLabel">Connecting WebSocket stream...</span>
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <a href="/architecture.html" style="background: rgba(2, 132, 199, 0.15); border: 1px solid var(--accent); color: var(--accent-bright); padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+      <span>🏛️ Architecture & ADR</span>
+    </a>
+    <div class="conn-status">
+      <div class="conn-dot" id="connDot"></div>
+      <span id="connLabel">Connecting WebSocket stream...</span>
+    </div>
   </div>
 </div>
 
@@ -269,11 +275,17 @@
     </div>
 
     <label>Ambulance ID</label>
-    <select id="ambSelect">
-      <option value="ambulance-A-17">Ambulance A-17</option>
-      <option value="ambulance-B-04">Ambulance B-04</option>
-      <option value="ambulance-C-09">Ambulance C-09</option>
-      <option value="ambulance-D-12">Ambulance D-12</option>
+    <select id="ambSelect" onchange="onAmbulanceSelect()">
+      <option value="ambulance-TS-09-EM-1001" data-lat="17.4504" data-lon="78.3808">TS-09-EM-1001 (Cyber Towers Madhapur)</option>
+      <option value="ambulance-TS-09-EM-1002" data-lat="17.4344" data-lon="78.5013">TS-09-EM-1002 (Secunderabad Station)</option>
+      <option value="ambulance-TS-09-EM-1003" data-lat="17.3616" data-lon="78.4747">TS-09-EM-1003 (Charminar Old City)</option>
+      <option value="ambulance-TS-09-EM-1004" data-lat="17.4258" data-lon="78.4513">TS-09-EM-1004 (Panjagutta Circle)</option>
+      <option value="ambulance-TS-09-EM-1005" data-lat="17.4400" data-lon="78.3489">TS-09-EM-1005 (Gachibowli ORR)</option>
+      <option value="ambulance-TS-09-EM-1006" data-lat="17.4283" data-lon="78.4111">TS-09-EM-1006 (Jubilee Hills Checkpost)</option>
+      <option value="ambulance-TS-09-EM-1007" data-lat="17.3916" data-lon="78.4410">TS-09-EM-1007 (Mehdipatnam X Roads)</option>
+      <option value="ambulance-TS-09-EM-1008" data-lat="17.3688" data-lon="78.5247">TS-09-EM-1008 (Dilsukhnagar Metro)</option>
+      <option value="ambulance-TS-09-EM-1009" data-lat="17.3457" data-lon="78.5522">TS-09-EM-1009 (LB Nagar Junction)</option>
+      <option value="ambulance-TS-09-EM-1010" data-lat="17.4842" data-lon="78.4138">TS-09-EM-1010 (Kukatpally Y Junction)</option>
     </select>
 
     <label>Required Ward</label>
@@ -286,11 +298,11 @@
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
       <div>
         <label>Latitude</label>
-        <input type="number" id="ambLat" value="42.5063" step="0.0001">
+        <input type="number" id="ambLat" value="17.4504" step="0.0001">
       </div>
       <div>
         <label>Longitude</label>
-        <input type="number" id="ambLon" value="1.5218" step="0.0001">
+        <input type="number" id="ambLon" value="78.3808" step="0.0001">
       </div>
     </div>
 
@@ -321,12 +333,21 @@
     logDiv.innerHTML = `[${time}] ${msg}<br>` + logDiv.innerHTML;
   }
 
-  // 1. Initialize Map centered on Andorra / Pyrenees Region
+  // 1. Initialize Map centered on Hyderabad Metro Region
   function initMap() {
-    map = L.map('map').setView([42.5063, 1.5218], 12);
+    map = L.map('map').setView([17.4065, 78.4772], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
+  }
+
+  function onAmbulanceSelect() {
+    const sel = document.getElementById('ambSelect');
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.dataset.lat && opt.dataset.lon) {
+      document.getElementById('ambLat').value = opt.dataset.lat;
+      document.getElementById('ambLon').value = opt.dataset.lon;
+    }
   }
 
   // 2. Initialize WebSocket with Auto-Reconnect
@@ -405,13 +426,42 @@
       allHospitals = await hRes.json();
       document.getElementById('metricHosp').innerText = allHospitals.length;
 
+      // Ambulances
+      const aRes = await fetch('/api/ambulances');
+      const allAmbulances = await aRes.json();
+
       renderHospitalsTable(allHospitals);
       renderMapMarkers(allHospitals);
+      renderAmbulanceMarkers(allAmbulances);
       populateDropdowns(allHospitals);
       loadTransfersTable();
     } catch (err) {
       console.error('Data refresh error:', err);
     }
+  }
+
+  let ambMarkersList = [];
+  function renderAmbulanceMarkers(ambulances) {
+    if (!map || !Array.isArray(ambulances)) return;
+    ambMarkersList.forEach(m => map.removeLayer(m));
+    ambMarkersList = [];
+
+    ambulances.forEach(a => {
+      const marker = L.circleMarker([a.last_lat, a.last_lon], {
+        radius: 6,
+        fillColor: '#38bdf8',
+        color: '#ffffff',
+        weight: 2,
+        fillOpacity: 1
+      }).addTo(map);
+
+      marker.bindPopup(`
+        <strong>🚑 ${a.plate_number || a.actor_id}</strong><br>
+        Status: <b style="color: #10b981;">${a.status}</b><br>
+        Location: (${a.last_lat.toFixed(4)}, ${a.last_lon.toFixed(4)})
+      `);
+      ambMarkersList.push(marker);
+    });
   }
 
   function renderHospitalsTable(hospitals) {

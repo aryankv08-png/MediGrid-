@@ -142,7 +142,7 @@ function simulateAmbulanceRequest(wsUrl, actorId, latencies) {
         ws.send(JSON.stringify({
           type: 'requestBed',
           actorId,
-          payload: { lat: 42.5063, lon: 1.5218, bedType: 'ICU', priority: 'CRITICAL' }
+          payload: { lat: 17.4222, lon: 78.4526, bedType: 'ICU', priority: 'CRITICAL' }
         }));
       } else if (msg.type === 'bedAssignment') {
         const elapsed = Date.now() - start;

@@ -68,8 +68,8 @@ async function runTests() {
     for (let i = 1; i <= 10; i++) {
       const a1 = `stress-amb-node1-${i}-${Date.now()}`;
       const a2 = `stress-amb-node2-${i}-${Date.now()}`;
-      requests.push(makeBedRequest('http://app1:3000', a1, 42.5063, 1.5218));
-      requests.push(makeBedRequest('http://app2:3000', a2, 42.5063, 1.5218));
+      requests.push(makeBedRequest('http://app1:3000', a1, 17.4222, 78.4526));
+      requests.push(makeBedRequest('http://app2:3000', a2, 17.4222, 78.4526));
     }
 
     const results = await Promise.all(requests);
@@ -190,7 +190,7 @@ async function runTests() {
         wsClientApp1.send(JSON.stringify({
           type: 'requestBed',
           actorId: 'client-app1',
-          payload: { lat: 42.5063, lon: 1.5218, bedType: 'GENERAL' }
+          payload: { lat: 17.4222, lon: 78.4526, bedType: 'GENERAL' }
         }));
       }, 500);
     });

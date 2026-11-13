@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MediGrid - City Emergency Bed & Dispatch Network</title>
+  <title>MediGrid - Hyderabad Emergency Bed & Dispatch Network</title>
   <!-- Leaflet Map CSS for real-time OSM mapping -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -22,57 +22,206 @@
       --purple: #a855f7;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 16px; min-height: 100vh; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      min-height: 100vh;
+    }
     
     /* Top Bar */
-    .top-bar { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border: 1px solid var(--border); padding: 14px 20px; border-radius: 10px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 14px 20px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
     .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #fff; display: flex; align-items: center; gap: 8px; }
-    .node-tag { font-size: 11px; background: rgba(56, 189, 248, 0.15); color: var(--accent-bright); border: 1px solid var(--accent); padding: 2px 8px; border-radius: 6px; font-weight: 700; }
-    .conn-status { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-muted); }
-    .conn-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
-    .conn-dot.online { background: var(--success); box-shadow: 0 0 10px var(--success); }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .node-tag {
+      font-size: 11px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-bright);
+      border: 1px solid var(--accent);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+    .conn-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .conn-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--danger);
+    }
+    .conn-dot.online {
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
 
     /* Alert Banner */
-    .incoming-alert { display: none; background: linear-gradient(90deg, rgba(239, 68, 68, 0.2), rgba(245, 158, 11, 0.2)); border: 1px solid var(--danger); padding: 12px 18px; border-radius: 8px; margin-bottom: 16px; animation: pulse 2s infinite; }
+    .incoming-alert {
+      display: none;
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.2), rgba(245, 158, 11, 0.2));
+      border: 1px solid var(--danger);
+      padding: 12px 18px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      animation: pulse 2s infinite;
+    }
     @keyframes pulse { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; } }
     .alert-flex { display: flex; justify-content: space-between; align-items: center; }
 
     /* Key Metrics */
-    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 16px; }
-    .metric-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: left; position: relative; overflow: hidden; }
-    .metric-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-card::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: var(--accent);
+    }
     .metric-card.danger::before { background: var(--danger); }
     .metric-card.warning::before { background: var(--warning); }
     .metric-card.success::before { background: var(--success); }
-    .metric-val { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 4px; }
-    .metric-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+    .metric-card.purple::before { background: var(--purple); }
+    .metric-val { font-size: 24px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .metric-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
 
     /* Tabs Navigation */
-    .nav-tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-    .nav-btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-muted); padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+    .nav-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+    .nav-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 9px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
     .nav-btn:hover { background: var(--card-hover); color: #fff; }
-    .nav-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .nav-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.4);
+    }
 
-    /* Main Container */
-    .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
-    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .card-title { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+    /* Cards & Layout */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
     /* Map */
-    #map { height: 420px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 16px; z-index: 1; }
+    #map { height: 500px; border-radius: 8px; border: 1px solid var(--border); z-index: 1; }
 
     /* Tables */
     .table-container { max-height: 480px; overflow-y: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { text-align: left; padding: 10px; color: var(--text-muted); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--card-bg); z-index: 2; }
-    td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--card-bg);
+      z-index: 2;
+    }
+    td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
     tr:hover { background: rgba(255,255,255,0.02); }
 
     /* Bed Wards Grid */
-    .bed-matrix { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; max-height: 450px; overflow-y: auto; padding: 4px; }
-    .bed-item { background: #0c121e; border: 1px solid var(--border); border-radius: 6px; padding: 8px 4px; text-align: center; cursor: pointer; transition: transform 0.1s; }
+    .bed-matrix {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 8px;
+      max-height: 450px;
+      overflow-y: auto;
+      padding: 4px;
+    }
+    .bed-item {
+      background: #0c121e;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 4px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
     .bed-item:hover { transform: scale(1.05); }
     .bed-item.FREE { border-color: var(--success); }
     .bed-item.OCCUPIED { border-color: var(--danger); opacity: 0.8; }
@@ -82,10 +231,35 @@
     .bed-item-status { font-size: 9px; color: var(--text-muted); margin-top: 3px; }
 
     /* Form Inputs */
-    label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px; }
-    input, select, textarea { width: 100%; background: #0a0e17; color: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 9px 12px; font-size: 13px; margin-bottom: 12px; }
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 6px;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: #0a0e17;
+      color: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
     input:focus, select:focus { outline: none; border-color: var(--accent); }
-    .btn { width: 100%; padding: 10px 14px; font-size: 13px; font-weight: 700; border-radius: 6px; cursor: pointer; border: none; transition: filter 0.2s; }
+    .btn {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      transition: filter 0.2s;
+    }
     .btn:hover { filter: brightness(1.15); }
     .btn-primary { background: var(--accent); color: #fff; }
     .btn-danger { background: var(--danger); color: #fff; }
@@ -93,8 +267,70 @@
     .btn-outline { background: transparent; border: 1px solid var(--border); color: #fff; }
 
     /* Feed Log */
-    #log { background: #050811; border: 1px solid var(--border); border-radius: 8px; padding: 12px; height: 320px; overflow-y: auto; font-family: monospace; font-size: 11px; color: var(--accent-bright); }
-    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    #log {
+      background: #050811;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      height: 220px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--accent-bright);
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    /* Live Reservation Result Card */
+    .dispatch-result-box {
+      background: #0b1220;
+      border: 2px solid var(--accent);
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 0 16px rgba(2, 132, 199, 0.2);
+    }
+    .dispatch-result-box.active {
+      border-color: var(--success);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+    }
+    .dispatch-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .countdown-timer {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--warning);
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--warning);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .dispatch-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .dispatch-stat-item {
+      background: #070a12;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .dispatch-stat-val { font-size: 16px; font-weight: 800; color: #fff; }
+    .dispatch-stat-label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
   </style>
 </head>
 <body>
@@ -105,7 +341,7 @@
     <div class="brand-title">
       <span>🚑 MEDIGRID</span>
       <span class="node-tag" id="nodeTag">Connecting...</span>
-      <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Hyderabad Metro Emergency Bed Grid</span>
+      <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Hyderabad City Emergency Bed & Dispatch Network</span>
     </div>
   </div>
   <div style="display: flex; align-items: center; gap: 14px;">
@@ -136,7 +372,7 @@
 <!-- METRICS BAR -->
 <div class="metrics-grid">
   <div class="metric-card">
-    <div class="metric-val" id="metricHosp">42</div>
+    <div class="metric-val" id="metricHosp">50</div>
     <div class="metric-label">Hospitals Mapped</div>
   </div>
   <div class="metric-card success">
@@ -155,190 +391,348 @@
     <div class="metric-val" id="metricDispatches">--</div>
     <div class="metric-label">Dispatches Logged</div>
   </div>
+  <div class="metric-card success">
+    <div class="metric-val" id="metricLatency">&lt; 25 ms</div>
+    <div class="metric-label">Bed Search (p95)</div>
+  </div>
+  <div class="metric-card purple">
+    <div class="metric-val" id="metricDoubleAlloc">0</div>
+    <div class="metric-label">Double Allocations</div>
+  </div>
 </div>
 
-<!-- TABS -->
+<!-- TABS NAVIGATION -->
 <div class="nav-tabs">
   <button class="nav-btn active" onclick="setTab('map')">🗺️ Live Control-Room Map</button>
-  <button class="nav-btn" onclick="setTab('table')">🏥 City Hospital Capacity</button>
+  <button class="nav-btn" onclick="setTab('dispatch')">🚑 Ambulance Dispatch & Bed Finder</button>
   <button class="nav-btn" onclick="setTab('console')">🛏️ Hospital Ward Console</button>
   <button class="nav-btn" onclick="setTab('transfers')">🔄 Inter-Hospital Transfer (Saga)</button>
+  <button class="nav-btn" onclick="setTab('table')">🏥 City Hospital Capacity</button>
 </div>
 
-<!-- MAIN GRID -->
-<div class="content-grid">
-  <!-- LEFT COLUMN -->
-  <div class="card">
-    <!-- VIEW 1: MAP -->
-    <div id="viewMap">
-      <div class="card-header">
-        <div class="card-title">Live City Emergency Network Map</div>
-        <div style="font-size: 12px; color: var(--text-muted);">OSRM Real Roads & GPS Feeds</div>
-      </div>
-      <div id="map"></div>
-    </div>
-
-    <!-- VIEW 2: HOSPITALS TABLE -->
-    <div id="viewTable" style="display: none;">
-      <div class="card-header">
-        <div class="card-title">Hospitals Directory (MySQL Live)</div>
-        <input type="text" id="searchHosp" placeholder="Search hospital name or address..." style="max-width: 250px; margin-bottom: 0;" onkeyup="filterHospitals()">
-      </div>
-      <div class="table-container">
-        <table id="hospTable">
-          <thead>
-            <tr>
-              <th>Hospital Facility</th>
-              <th>Total Beds</th>
-              <th>Free ICU</th>
-              <th>Free Vent</th>
-              <th>Free Gen</th>
-              <th>Address</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- VIEW 3: HOSPITAL WARD CONSOLE -->
-    <div id="viewConsole" style="display: none;">
-      <div class="card-header">
-        <div class="card-title">Hospital Ward Console</div>
-        <div style="font-size: 12px; color: var(--text-muted);">Click bed to Admit / Discharge</div>
-      </div>
-      <label>Selected Facility</label>
-      <select id="hospSelect" onchange="loadHospitalWards()"></select>
-      <div class="bed-matrix" id="bedMatrix"></div>
-    </div>
-
-    <!-- VIEW 4: TRANSFERS -->
-    <div id="viewTransfers" style="display: none;">
-      <div class="card-header">
-        <div class="card-title">Inter-Hospital Transfer Workflow (Saga Execution)</div>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-        <div>
-          <label>Source Transferring Hospital</label>
-          <select id="transFrom"></select>
-        </div>
-        <div>
-          <label>Receiving Target Hospital</label>
-          <select id="transTo"></select>
-        </div>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-        <div>
-          <label>Patient ID</label>
-          <input type="text" id="transPatient" value="PAT-9941">
-        </div>
-        <div>
-          <label>Department Required</label>
-          <select id="transBedType">
-            <option value="ICU">ICU Critical</option>
-            <option value="VENTILATOR">Ventilator Care</option>
-            <option value="GENERAL">General Emergency</option>
-          </select>
-        </div>
-      </div>
-      <label>Queue Priority</label>
-      <select id="transPriority">
-        <option value="CRITICAL">CRITICAL (RabbitMQ Top Priority 10)</option>
-        <option value="ROUTINE">ROUTINE (Standard Priority 0)</option>
-      </select>
-      <button class="btn btn-danger" onclick="dispatchTransfer()">Initiate Transfer Saga Workflow</button>
-
-      <div class="card-header" style="margin-top: 20px;">
-        <div class="card-title" style="font-size: 14px;">Recent Transfer Audit Log (MySQL)</div>
-      </div>
-      <div class="table-container" style="max-height: 200px;">
-        <table id="transTable">
-          <thead>
-            <tr>
-              <th>Patient</th>
-              <th>Route</th>
-              <th>Priority</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- RIGHT COLUMN: AMBULANCE DISPATCH & REAL-TIME STREAM -->
+<!-- ============================================================== -->
+<!-- VIEW 1: LIVE CONTROL-ROOM MAP -->
+<!-- ============================================================== -->
+<div id="viewMap">
   <div class="card">
     <div class="card-header">
-      <div class="card-title">Ambulance Dispatch Bed Finder</div>
-      <div class="badge" style="background: var(--accent); color: #fff;">OSRM Algorithm</div>
-    </div>
-
-    <label>Ambulance ID</label>
-    <select id="ambSelect" onchange="onAmbulanceSelect()">
-      <option value="ambulance-TS-09-EM-1001" data-lat="17.4504" data-lon="78.3808">TS-09-EM-1001 (Cyber Towers Madhapur)</option>
-      <option value="ambulance-TS-09-EM-1002" data-lat="17.4344" data-lon="78.5013">TS-09-EM-1002 (Secunderabad Station)</option>
-      <option value="ambulance-TS-09-EM-1003" data-lat="17.3616" data-lon="78.4747">TS-09-EM-1003 (Charminar Old City)</option>
-      <option value="ambulance-TS-09-EM-1004" data-lat="17.4258" data-lon="78.4513">TS-09-EM-1004 (Panjagutta Circle)</option>
-      <option value="ambulance-TS-09-EM-1005" data-lat="17.4400" data-lon="78.3489">TS-09-EM-1005 (Gachibowli ORR)</option>
-      <option value="ambulance-TS-09-EM-1006" data-lat="17.4283" data-lon="78.4111">TS-09-EM-1006 (Jubilee Hills Checkpost)</option>
-      <option value="ambulance-TS-09-EM-1007" data-lat="17.3916" data-lon="78.4410">TS-09-EM-1007 (Mehdipatnam X Roads)</option>
-      <option value="ambulance-TS-09-EM-1008" data-lat="17.3688" data-lon="78.5247">TS-09-EM-1008 (Dilsukhnagar Metro)</option>
-      <option value="ambulance-TS-09-EM-1009" data-lat="17.3457" data-lon="78.5522">TS-09-EM-1009 (LB Nagar Junction)</option>
-      <option value="ambulance-TS-09-EM-1010" data-lat="17.4842" data-lon="78.4138">TS-09-EM-1010 (Kukatpally Y Junction)</option>
-    </select>
-
-    <label>Required Ward</label>
-    <select id="ambWard">
-      <option value="ICU">ICU (Intensive Care)</option>
-      <option value="VENTILATOR">Ventilator Assisted</option>
-      <option value="GENERAL">General Emergency</option>
-    </select>
-
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
       <div>
-        <label>Latitude</label>
-        <input type="number" id="ambLat" value="17.4504" step="0.0001">
+        <div class="card-title">Hyderabad Metro Emergency Network Map</div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+          Real-Time OSM Map with 50 Hospitals, 5,000 Beds, and 30 Roaming Ambulances
+        </div>
       </div>
-      <div>
-        <label>Longitude</label>
-        <input type="number" id="ambLon" value="78.3808" step="0.0001">
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-outline" style="width: auto; padding: 6px 12px; font-size: 11px;" onclick="centerMap()">🎯 Center Map</button>
       </div>
     </div>
-
-    <button class="btn btn-danger" style="margin-bottom: 8px;" onclick="requestBed('CRITICAL')">🚨 Priority Emergency Bed Request</button>
-    <button class="btn btn-outline" style="margin-bottom: 8px;" onclick="requestBed('ROUTINE')">Routine Bed Request</button>
-    <button class="btn btn-outline" onclick="transmitGps()">📍 Transmit GPS Ping</button>
-
-    <div class="card-header" style="margin-top: 20px;">
-      <div class="card-title" style="font-size: 14px;">Live Event Bus Feed</div>
+    <div id="map"></div>
+    <div style="display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+      <div>🟢 Hospital with Free Beds</div>
+      <div>🔴 Hospital at Capacity (0 Free ICUs)</div>
+      <div>🔷 Active Roaming Ambulance (GPS Live)</div>
     </div>
-    <div id="log"></div>
   </div>
 </div>
 
-<!-- LEAFLET MAP SCRIPT -->
+<!-- ============================================================== -->
+<!-- VIEW 2: DEDICATED AMBULANCE DISPATCH & BED FINDER -->
+<!-- ============================================================== -->
+<div id="viewDispatch" style="display: none;">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+    <!-- LEFT: DISPATCH INPUT FORM -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Emergency Bed Finder & Dispatch</div>
+        <div class="badge" style="background: var(--accent); color: #fff;">Fast Index + Two-Tier Lock</div>
+      </div>
+
+      <label>Select Ambulance Unit</label>
+      <select id="ambSelect" onchange="onAmbulanceSelect()">
+        <option value="ambulance-TS-09-EM-1001" data-lat="17.4504" data-lon="78.3808">TS-09-EM-1001 (Cyber Towers Madhapur)</option>
+        <option value="ambulance-TS-09-EM-1002" data-lat="17.4344" data-lon="78.5013">TS-09-EM-1002 (Secunderabad Station)</option>
+        <option value="ambulance-TS-09-EM-1003" data-lat="17.3616" data-lon="78.4747">TS-09-EM-1003 (Charminar Old City)</option>
+        <option value="ambulance-TS-09-EM-1004" data-lat="17.4258" data-lon="78.4513">TS-09-EM-1004 (Panjagutta Circle)</option>
+        <option value="ambulance-TS-09-EM-1005" data-lat="17.4400" data-lon="78.3489">TS-09-EM-1005 (Gachibowli ORR)</option>
+        <option value="ambulance-TS-09-EM-1006" data-lat="17.4283" data-lon="78.4111">TS-09-EM-1006 (Jubilee Hills Checkpost)</option>
+        <option value="ambulance-TS-09-EM-1007" data-lat="17.3916" data-lon="78.4410">TS-09-EM-1007 (Mehdipatnam X Roads)</option>
+        <option value="ambulance-TS-09-EM-1008" data-lat="17.3688" data-lon="78.5247">TS-09-EM-1008 (Dilsukhnagar Metro)</option>
+        <option value="ambulance-TS-09-EM-1009" data-lat="17.3457" data-lon="78.5522">TS-09-EM-1009 (LB Nagar Junction)</option>
+        <option value="ambulance-TS-09-EM-1010" data-lat="17.4842" data-lon="78.4138">TS-09-EM-1010 (Kukatpally Y Junction)</option>
+        <option value="ambulance-TS-09-EM-1011" data-lat="17.4375" data-lon="78.4482">TS-09-EM-1011 (Ameerpet Metro)</option>
+        <option value="ambulance-TS-09-EM-1012" data-lat="17.4441" data-lon="78.4682">TS-09-EM-1012 (Begumpet Airport Rd)</option>
+        <option value="ambulance-TS-09-EM-1013" data-lat="17.4018" data-lon="78.5602">TS-09-EM-1013 (Uppal Ring Road)</option>
+        <option value="ambulance-TS-09-EM-1014" data-lat="17.4968" data-lon="78.3614">TS-09-EM-1014 (Miyapur Metro Terminal)</option>
+        <option value="ambulance-TS-09-EM-1015" data-lat="17.4050" data-lon="78.4632">TS-09-EM-1015 (Lakdikapul Station)</option>
+      </select>
+
+      <label>Required Department / Ward</label>
+      <select id="ambWard">
+        <option value="ICU">ICU (Intensive Care Unit)</option>
+        <option value="VENTILATOR">Ventilator Assisted</option>
+        <option value="GENERAL">General Emergency</option>
+        <option value="PEDIATRIC">Pediatric Emergency</option>
+      </select>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div>
+          <label>Ambulance Latitude</label>
+          <input type="number" id="ambLat" value="17.4504" step="0.0001">
+        </div>
+        <div>
+          <label>Ambulance Longitude</label>
+          <input type="number" id="ambLon" value="78.3808" step="0.0001">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+        <button class="btn btn-danger" onclick="requestBed('CRITICAL')">🚨 CRITICAL Bed Request (Prio 10)</button>
+        <button class="btn btn-outline" onclick="requestBed('ROUTINE')">Routine Request (Prio 0)</button>
+      </div>
+      <button class="btn btn-outline" onclick="transmitGps()">📍 Transmit Live GPS Ping</button>
+    </div>
+
+    <!-- RIGHT: LIVE RESERVATION CARD & DISPATCH STATUS -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Live Bed Allocation & Reservation Status</div>
+        <div id="countdownBadge" class="countdown-timer" style="display: none;">⏱️ 15:00</div>
+      </div>
+
+      <div id="noDispatchBox" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+        <div style="font-size: 36px; margin-bottom: 12px;">🏥</div>
+        <div style="font-size: 15px; font-weight: 700; color: #fff;">No Bed Currently Assigned</div>
+        <div style="font-size: 12px; margin-top: 6px;">Select an ambulance and click "CRITICAL Bed Request" to locate, lock, and reserve the nearest suitable bed in under 100ms.</div>
+      </div>
+
+      <div id="activeDispatchCard" class="dispatch-result-box active" style="display: none;">
+        <div class="dispatch-title">
+          <span style="color: var(--success);">✅ BED RESERVED & DISPATCH ASSIGNED</span>
+          <span class="badge" id="dispPriorityBadge" style="background: var(--danger); color: #fff;">CRITICAL</span>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          <strong id="dispHospName" style="font-size: 16px; color: #fff;">Hospital Name</strong>
+          <div id="dispHospAddress" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Hospital Address</div>
+        </div>
+
+        <div class="dispatch-stat-grid">
+          <div class="dispatch-stat-item">
+            <div class="dispatch-stat-val" id="dispDistance">-- km</div>
+            <div class="dispatch-stat-label">Road Distance</div>
+          </div>
+          <div class="dispatch-stat-item">
+            <div class="dispatch-stat-val" id="dispEta">-- min</div>
+            <div class="dispatch-stat-label">Estimated Transit</div>
+          </div>
+          <div class="dispatch-stat-item">
+            <div class="dispatch-stat-val" id="dispBedType" style="color: var(--accent-bright);">ICU</div>
+            <div class="dispatch-stat-label">Ward Type</div>
+          </div>
+          <div class="dispatch-stat-item">
+            <div class="dispatch-stat-val" id="dispLatency" style="color: var(--success);">18 ms</div>
+            <div class="dispatch-stat-label">Search Latency</div>
+          </div>
+        </div>
+
+        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 14px;">
+          Bed ID: <span id="dispBedId" style="font-family: monospace; color: var(--accent-bright);">--</span> | 
+          Status: <span style="color: var(--warning); font-weight: bold;">RESERVED (15m Auto-Release Lock)</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button class="btn btn-success" onclick="confirmArrival()">✅ Confirm Arrival & Admit</button>
+          <button class="btn btn-danger" onclick="cancelDispatch()">❌ Cancel & Release Bed</button>
+        </div>
+      </div>
+
+      <div class="card-header" style="margin-top: 14px; margin-bottom: 8px;">
+        <div class="card-title" style="font-size: 13px;">Live Cluster Event Stream</div>
+      </div>
+      <div id="log"></div>
+    </div>
+  </div>
+
+  <!-- DISPATCH AUDIT LOG TABLE -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Recent Ambulance Dispatch Audit History (MySQL)</div>
+      <button class="btn btn-outline" style="width: auto; padding: 4px 12px; font-size: 11px;" onclick="loadDispatchesTable()">↻ Refresh</button>
+    </div>
+    <div class="table-container" style="max-height: 250px;">
+      <table id="dispatchTable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Ambulance</th>
+            <th>Hospital Facility</th>
+            <th>Bed Ward</th>
+            <th>Distance</th>
+            <th>ETA</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- VIEW 3: HOSPITAL WARD CONSOLE -->
+<!-- ============================================================== -->
+<div id="viewConsole" style="display: none;">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Hospital Ward Console (Staff Bed Management)</div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+          Live Bed Matrix with Optimistic State Rollback (Click bed to Admit / Discharge / Clean)
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <span class="badge" style="background: var(--success); color: #fff;">FREE</span>
+        <span class="badge" style="background: var(--warning); color: #fff;">RESERVED</span>
+        <span class="badge" style="background: var(--danger); color: #fff;">OCCUPIED</span>
+        <span class="badge" style="background: var(--purple); color: #fff;">CLEANING</span>
+      </div>
+    </div>
+
+    <label>Select Hospital Facility</label>
+    <select id="hospSelect" onchange="loadHospitalWards()"></select>
+
+    <div class="bed-matrix" id="bedMatrix"></div>
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- VIEW 4: INTER-HOSPITAL TRANSFER SAGA -->
+<!-- ============================================================== -->
+<div id="viewTransfers" style="display: none;">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Inter-Hospital Patient Transfer (Choreographed Saga)</div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+          Distributed Saga with 15-Minute Expiry & Compensating Rollback Transitions
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+      <div>
+        <label>Source Transferring Hospital</label>
+        <select id="transFrom"></select>
+      </div>
+      <div>
+        <label>Receiving Target Hospital</label>
+        <select id="transTo"></select>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+      <div>
+        <label>Patient ID</label>
+        <input type="text" id="transPatient" value="PAT-HYD-9021">
+      </div>
+      <div>
+        <label>Department Required</label>
+        <select id="transBedType">
+          <option value="ICU">ICU Critical Care</option>
+          <option value="VENTILATOR">Ventilator Care</option>
+          <option value="GENERAL">General Emergency</option>
+          <option value="PEDIATRIC">Pediatric Ward</option>
+        </select>
+      </div>
+    </div>
+
+    <label>RabbitMQ AMQP Priority</label>
+    <select id="transPriority">
+      <option value="CRITICAL">CRITICAL (Top AMQP Priority 10 Preemption)</option>
+      <option value="ROUTINE">ROUTINE (Standard Priority 0)</option>
+    </select>
+
+    <button class="btn btn-danger" onclick="dispatchTransfer()">Initiate Inter-Hospital Transfer Saga</button>
+
+    <div class="card-header" style="margin-top: 24px;">
+      <div class="card-title" style="font-size: 14px;">Recent Transfer Audit Log (MySQL Primary)</div>
+    </div>
+    <div class="table-container" style="max-height: 250px;">
+      <table id="transTable">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Transfer Route</th>
+            <th>Priority</th>
+            <th>Saga Step</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- VIEW 5: CITY HOSPITAL CAPACITY DIRECTORY -->
+<!-- ============================================================== -->
+<div id="viewTable" style="display: none;">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Hyderabad City Hospitals Capacity Directory</div>
+      <input type="text" id="searchHosp" placeholder="Search hospital name, zone, or address..." style="max-width: 300px; margin-bottom: 0;" onkeyup="filterHospitals()">
+    </div>
+    <div class="table-container">
+      <table id="hospTable">
+        <thead>
+          <tr>
+            <th>Hospital Facility</th>
+            <th>Total Beds</th>
+            <th>Free ICU</th>
+            <th>Free Vent</th>
+            <th>Free General</th>
+            <th>Contact Phone</th>
+            <th>Address</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- LEAFLET MAP SCRIPT & CONTROLS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   let socket = null;
   let map = null;
   let hospMarkers = [];
-  let ambMarkers = {};
+  let ambMarkersList = [];
+  let routeLine = null;
   let allHospitals = [];
   let currentIncomingTransfer = null;
+  let currentActiveDispatch = null;
+  let countdownTimerId = null;
   const logDiv = document.getElementById('log');
 
   function log(msg) {
     const time = new Date().toLocaleTimeString();
-    logDiv.innerHTML = `[${time}] ${msg}<br>` + logDiv.innerHTML;
+    if (logDiv) {
+      logDiv.innerHTML = `[${time}] ${msg}<br>` + logDiv.innerHTML;
+    }
   }
 
-  // 1. Initialize Map centered on Hyderabad Metro Region
+  // 1. Initialize Map centered on Hyderabad
   function initMap() {
     map = L.map('map').setView([17.4065, 78.4772], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
+  }
+
+  function centerMap() {
+    if (map) map.setView([17.4065, 78.4772], 12);
   }
 
   function onAmbulanceSelect() {
@@ -371,6 +765,15 @@
       const msg = JSON.parse(e.data);
       if (msg.type === 'registered') {
         document.getElementById('nodeTag').innerText = msg.instanceId || 'active-node';
+      } else if (msg.type === 'bedAssignment') {
+        showDispatchResult(msg.payload);
+      } else if (msg.type === 'bedReservedFanout') {
+        if (msg.payload && (!currentActiveDispatch || currentActiveDispatch.bedId === msg.payload.bedId)) {
+          showDispatchResult(msg.payload);
+        }
+      } else if (msg.type === 'arrivalConfirmed' || msg.type === 'dispatchCancelled') {
+        clearDispatchResult();
+        loadDispatchesTable();
       } else if (msg.type === 'transferIncomingAlert') {
         currentIncomingTransfer = msg.payload;
         document.getElementById('transferAlert').style.display = 'block';
@@ -379,6 +782,7 @@
       } else if (msg.type === 'transferAccepted' || msg.type === 'transferRolledBack') {
         document.getElementById('transferAlert').style.display = 'none';
       }
+
       log(`&larr; [${msg.type}] ${JSON.stringify(msg.payload || msg)}`);
       refreshData();
     };
@@ -396,14 +800,17 @@
     event.currentTarget.classList.add('active');
 
     document.getElementById('viewMap').style.display = tab === 'map' ? 'block' : 'none';
-    document.getElementById('viewTable').style.display = tab === 'table' ? 'block' : 'none';
+    document.getElementById('viewDispatch').style.display = tab === 'dispatch' ? 'block' : 'none';
     document.getElementById('viewConsole').style.display = tab === 'console' ? 'block' : 'none';
     document.getElementById('viewTransfers').style.display = tab === 'transfers' ? 'block' : 'none';
+    document.getElementById('viewTable').style.display = tab === 'table' ? 'block' : 'none';
 
     if (tab === 'map') {
-      setTimeout(() => map.invalidateSize(), 150);
+      setTimeout(() => map && map.invalidateSize(), 150);
     } else if (tab === 'console') {
       loadHospitalWards();
+    } else if (tab === 'dispatch') {
+      loadDispatchesTable();
     }
   }
 
@@ -415,6 +822,12 @@
       const metrics = await mRes.json();
       document.getElementById('metricDispatches').innerText = metrics.totalDispatches;
       document.getElementById('metricTransfers').innerText = metrics.activeTransfers || 0;
+      if (metrics.p95SearchLatencyMs) {
+        document.getElementById('metricLatency').innerText = `${metrics.p95SearchLatencyMs} ms`;
+      }
+      if (metrics.doubleAllocations !== undefined) {
+        document.getElementById('metricDoubleAlloc').innerText = metrics.doubleAllocations;
+      }
 
       const icu = metrics.freeBedsByType.find(b => b.bed_type === 'ICU');
       const vent = metrics.freeBedsByType.find(b => b.bed_type === 'VENTILATOR');
@@ -440,32 +853,9 @@
     }
   }
 
-  let ambMarkersList = [];
-  function renderAmbulanceMarkers(ambulances) {
-    if (!map || !Array.isArray(ambulances)) return;
-    ambMarkersList.forEach(m => map.removeLayer(m));
-    ambMarkersList = [];
-
-    ambulances.forEach(a => {
-      const marker = L.circleMarker([a.last_lat, a.last_lon], {
-        radius: 6,
-        fillColor: '#38bdf8',
-        color: '#ffffff',
-        weight: 2,
-        fillOpacity: 1
-      }).addTo(map);
-
-      marker.bindPopup(`
-        <strong>🚑 ${a.plate_number || a.actor_id}</strong><br>
-        Status: <b style="color: #10b981;">${a.status}</b><br>
-        Location: (${a.last_lat.toFixed(4)}, ${a.last_lon.toFixed(4)})
-      `);
-      ambMarkersList.push(marker);
-    });
-  }
-
   function renderHospitalsTable(hospitals) {
     const tbody = document.querySelector('#hospTable tbody');
+    if (!tbody) return;
     tbody.innerHTML = hospitals.map(h => `
       <tr>
         <td><strong>${h.name}</strong></td>
@@ -473,6 +863,7 @@
         <td><span style="color: var(--accent-bright); font-weight: bold;">${h.freeICU}</span></td>
         <td><span style="color: var(--warning); font-weight: bold;">${h.freeVentilator}</span></td>
         <td>${h.freeGeneral}</td>
+        <td style="color: var(--text-muted); font-size: 11px;">${h.phone || '+91 40 2348 9000'}</td>
         <td style="color: var(--text-muted); font-size: 11px;">${h.address}</td>
       </tr>
     `).join('');
@@ -494,11 +885,34 @@
 
       marker.bindPopup(`
         <strong>${h.name}</strong><br>
-        Free ICUs: <b>${h.freeICU}</b><br>
-        Free Vents: <b>${h.freeVentilator}</b><br>
+        Address: ${h.address}<br>
+        Free ICUs: <b>${h.freeICU}</b> | Free Vents: <b>${h.freeVentilator}</b><br>
         Total Beds: ${h.totalBeds}
       `);
       hospMarkers.push(marker);
+    });
+  }
+
+  function renderAmbulanceMarkers(ambulances) {
+    if (!map || !Array.isArray(ambulances)) return;
+    ambMarkersList.forEach(m => map.removeLayer(m));
+    ambMarkersList = [];
+
+    ambulances.forEach(a => {
+      const marker = L.circleMarker([a.last_lat, a.last_lon], {
+        radius: 6,
+        fillColor: '#38bdf8',
+        color: '#ffffff',
+        weight: 2,
+        fillOpacity: 1
+      }).addTo(map);
+
+      marker.bindPopup(`
+        <strong>🚑 ${a.plate_number || a.actor_id}</strong><br>
+        Status: <b style="color: #10b981;">${a.status}</b><br>
+        Location: (${a.last_lat.toFixed(4)}, ${a.last_lon.toFixed(4)})
+      `);
+      ambMarkersList.push(marker);
     });
   }
 
@@ -544,6 +958,7 @@
     setTimeout(loadHospitalWards, 300);
   }
 
+  // 5. AMBULANCE BED REQUEST & LIVE CARD DISPLAY
   function requestBed(priority) {
     if (!socket || socket.readyState !== WebSocket.OPEN) return alert('WebSocket offline');
     const actorId = document.getElementById('ambSelect').value;
@@ -557,6 +972,115 @@
       payload: { lat, lon, bedType, priority }
     }));
     log(`&rarr; Ambulance requested ${priority} ${bedType} bed at (${lat}, ${lon})`);
+  }
+
+  function showDispatchResult(payload) {
+    currentActiveDispatch = payload;
+    document.getElementById('noDispatchBox').style.display = 'none';
+    document.getElementById('activeDispatchCard').style.display = 'block';
+
+    document.getElementById('dispHospName').innerText = payload.hospitalName;
+    document.getElementById('dispHospAddress').innerText = payload.hospitalAddress || 'Hyderabad Care Facility';
+    document.getElementById('dispDistance').innerText = `${(payload.distanceMeters / 1000).toFixed(1)} km`;
+    
+    const minutes = Math.floor(payload.estimatedArrivalSec / 60);
+    const seconds = payload.estimatedArrivalSec % 60;
+    document.getElementById('dispEta').innerText = `${minutes}m ${seconds}s`;
+    document.getElementById('dispBedType').innerText = payload.bedType;
+    document.getElementById('dispLatency').innerText = `${payload.latencyMs} ms`;
+    document.getElementById('dispBedId').innerText = payload.bedId;
+    document.getElementById('dispPriorityBadge').innerText = payload.priority;
+
+    // Start 15-Minute Countdown Timer
+    startCountdown(payload.expiresAt);
+
+    // Draw route polyline on Leaflet map
+    if (map && payload.pickupLat && payload.pickupLon && payload.hospitalLat && payload.hospitalLon) {
+      if (routeLine) map.removeLayer(routeLine);
+      routeLine = L.polyline([
+        [payload.pickupLat, payload.pickupLon],
+        [payload.hospitalLat, payload.hospitalLon]
+      ], { color: '#38bdf8', weight: 4, dashArray: '6, 8' }).addTo(map);
+      map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+    }
+
+    loadDispatchesTable();
+  }
+
+  function startCountdown(expiresAt) {
+    if (countdownTimerId) clearInterval(countdownTimerId);
+    const countdownEl = document.getElementById('countdownBadge');
+    countdownEl.style.display = 'inline-block';
+
+    const expiryTime = expiresAt ? new Date(expiresAt).getTime() : Date.now() + 15 * 60 * 1000;
+
+    countdownTimerId = setInterval(() => {
+      const remainingMs = expiryTime - Date.now();
+      if (remainingMs <= 0) {
+        clearInterval(countdownTimerId);
+        countdownEl.innerText = 'EXPIRED';
+        clearDispatchResult();
+        return;
+      }
+      const m = Math.floor(remainingMs / 60000);
+      const s = Math.floor((remainingMs % 60000) / 1000);
+      countdownEl.innerText = `⏱️ ${m}:${s.toString().padStart(2, '0')}`;
+    }, 1000);
+  }
+
+  function clearDispatchResult() {
+    currentActiveDispatch = null;
+    if (countdownTimerId) clearInterval(countdownTimerId);
+    document.getElementById('countdownBadge').style.display = 'none';
+    document.getElementById('noDispatchBox').style.display = 'block';
+    document.getElementById('activeDispatchCard').style.display = 'none';
+    if (routeLine && map) {
+      map.removeLayer(routeLine);
+      routeLine = null;
+    }
+  }
+
+  function confirmArrival() {
+    if (!currentActiveDispatch) return;
+    socket.send(JSON.stringify({
+      type: 'confirmArrival',
+      actorId: currentActiveDispatch.actorId,
+      payload: { actorId: currentActiveDispatch.actorId, bedId: currentActiveDispatch.bedId }
+    }));
+    log(`&rarr; Patient arrived. Admitted into ${currentActiveDispatch.hospitalName}`);
+    clearDispatchResult();
+  }
+
+  function cancelDispatch() {
+    if (!currentActiveDispatch) return;
+    socket.send(JSON.stringify({
+      type: 'cancelDispatch',
+      actorId: currentActiveDispatch.actorId,
+      payload: { actorId: currentActiveDispatch.actorId, bedId: currentActiveDispatch.bedId }
+    }));
+    log(`&rarr; Dispatch cancelled for ${currentActiveDispatch.actorId}. Bed released.`);
+    clearDispatchResult();
+  }
+
+  async function loadDispatchesTable() {
+    try {
+      const res = await fetch('/api/dispatches');
+      const dispatches = await res.json();
+      const tbody = document.querySelector('#dispatchTable tbody');
+      if (tbody) {
+        tbody.innerHTML = dispatches.slice(0, 15).map(d => `
+          <tr>
+            <td style="color: var(--text-muted); font-size: 11px;">${new Date(d.assigned_at).toLocaleTimeString()}</td>
+            <td><strong>${d.actor_id}</strong></td>
+            <td>${d.hospitalName}</td>
+            <td><span class="badge" style="background: var(--accent); color: #fff;">${d.bed_type}</span></td>
+            <td>${(d.distance_meters / 1000).toFixed(1)} km</td>
+            <td>${Math.round(d.estimated_duration_sec / 60)} min</td>
+            <td><span class="badge" style="background: ${d.status === 'ASSIGNED' ? 'var(--warning)' : d.status === 'ARRIVED' ? 'var(--success)' : 'var(--danger)'}; color: #fff;">${d.status}</span></td>
+          </tr>
+        `).join('');
+      }
+    } catch (e) {}
   }
 
   function transmitGps() {
@@ -622,12 +1146,13 @@
       const transfers = await res.json();
       const tbody = document.querySelector('#transTable tbody');
       if (tbody) {
-        tbody.innerHTML = transfers.slice(0, 5).map(t => `
+        tbody.innerHTML = transfers.slice(0, 10).map(t => `
           <tr>
             <td><strong>${t.patient_id}</strong></td>
-            <td>${t.fromHospitalName.slice(0, 16)}... &rarr; ${t.toHospitalName.slice(0, 16)}...</td>
+            <td>${t.fromHospitalName.slice(0, 20)}... &rarr; ${t.toHospitalName.slice(0, 20)}...</td>
             <td><span style="color: ${t.priority === 'CRITICAL' ? 'var(--danger)' : 'var(--accent-bright)'}; font-weight: bold;">${t.priority}</span></td>
             <td><span class="badge" style="background: var(--border);">${t.step}</span></td>
+            <td style="color: var(--text-muted); font-size: 11px;">${new Date(t.created_at).toLocaleTimeString()}</td>
           </tr>
         `).join('');
       }
@@ -644,6 +1169,7 @@
     initMap();
     initWs();
     refreshData();
+    loadDispatchesTable();
     setInterval(refreshData, 4000);
   };
 </script>

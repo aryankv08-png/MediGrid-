@@ -52,9 +52,18 @@ async function initSchema(p: Pool) {
       reservation_expires_at TIMESTAMP NULL,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       INDEX idx_hosp_status_type (hospital_id, status, bed_type),
+      INDEX idx_status_type_hosp (status, bed_type, hospital_id),
+      INDEX idx_res_expiry (status, reservation_expires_at),
       CONSTRAINT fk_hosp_bed FOREIGN KEY (hospital_id) REFERENCES hospitals(id) ON DELETE CASCADE
     );
   `);
+
+  try {
+    await p.query('CREATE INDEX idx_status_type_hosp ON beds (status, bed_type, hospital_id)');
+  } catch (e) {}
+  try {
+    await p.query('CREATE INDEX idx_res_expiry ON beds (status, reservation_expires_at)');
+  } catch (e) {}
 
   // 3. Ambulances fleet
   await p.query(`

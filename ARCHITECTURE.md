@@ -47,3 +47,4 @@ During major medical surges or accidents, ambulances and hospitals face critical
 
 ### 5. Multi-Instance Stateless Topology
 - Two identical application nodes (`app1` on port 3000/3001, `app2` on port 3002) share state through Redis Pub/Sub (`ws:fanout`) and MySQL. If either instance crashes, users seamlessly failover to the other within seconds without state loss.
+

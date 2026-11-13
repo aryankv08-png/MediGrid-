@@ -165,3 +165,4 @@ function simulateAmbulanceRequest(wsUrl, actorId, latencies) {
 }
 
 runSimulator().catch(console.error);
+
